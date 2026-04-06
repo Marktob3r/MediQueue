@@ -23,7 +23,7 @@ export default function PatientLogin() {
     firstName: "",
     lastName: "",
     email: "",
-    phone: "",
+    phone: "",  
     password: "",
     confirmPassword: "",
     agreeTerms: false,
@@ -171,22 +171,6 @@ export default function PatientLogin() {
                       "Sign In to Patient Portal"
                     )}
                   </motion.button>
-
-                  {/* Divider */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-px bg-gray-200" />
-                    <span className="text-xs text-gray-400">or continue as</span>
-                    <div className="flex-1 h-px bg-gray-200" />
-                  </div>
-
-                  {/* Guest / Walk-in */}
-                  <button
-                    type="button"
-                    onClick={() => navigate("/patient/queue/monitor")}
-                    className="w-full border-2 border-green-200 text-green-700 font-semibold py-3 rounded-2xl hover:bg-green-50 transition-all text-sm"
-                  >
-                    View Live Queue (Guest)
-                  </button>
                 </motion.form>
               )}
 
@@ -228,7 +212,7 @@ export default function PatientLogin() {
                         required
                         value={regForm.lastName}
                         onChange={(e) => setRegForm({ ...regForm, lastName: e.target.value })}
-                        placeholder="dela Cruz"
+                        placeholder="Dela Cruz"
                         className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
                       />
                     </div>
@@ -244,24 +228,6 @@ export default function PatientLogin() {
                         value={regForm.email}
                         onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
                         placeholder="juan@email.com"
-                        className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                      Phone Number
-                    </label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      {/* PLACEHOLDER: Validate Philippine phone number format */}
-                      <input
-                        type="tel"
-                        required
-                        value={regForm.phone}
-                        onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
-                        placeholder="+63 9XX XXX XXXX"
                         className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
                       />
                     </div>

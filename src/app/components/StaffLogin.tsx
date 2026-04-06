@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { motion } from "motion/react";
-import { Activity, Mail, Lock, Eye, EyeOff, ArrowLeft, ShieldCheck, Users } from "lucide-react";
+import { Activity, Mail, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
 
 // PLACEHOLDER: Replace with actual clinic branding
 const CLINIC_NAME = "Samuel P. Dizon Medical Clinic";
@@ -15,11 +15,11 @@ export default function StaffLogin() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [role, setRole] = useState<"staff" | "admin">("staff");
   const [error, setError] = useState("");
 
   // PLACEHOLDER: Replace with real API call to POST /api/auth/staff-login
   // Response should include: { token, refreshToken, role, user: { name, staffId, department } }
+  // The role property will determine redirect: "admin" → /admin/dashboard, "staff" → /staff/dashboard
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -29,12 +29,9 @@ export default function StaffLogin() {
 
     setLoading(false);
 
-    // PLACEHOLDER: Use the role from JWT response to redirect accordingly
-    if (role === "admin") {
-      navigate("/admin/dashboard");
-    } else {
-      navigate("/staff/dashboard");
-    }
+    // PLACEHOLDER: In real implementation, use role from API response to redirect accordingly
+    // For now, defaulting to staff dashboard
+    navigate("/staff/dashboard");
   };
 
   return (
@@ -63,54 +60,24 @@ export default function StaffLogin() {
           <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-2xl">
             <Activity className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-extrabold text-white">Staff & Admin Portal</h1>
+          <h1 className="text-2xl font-extrabold text-white">Staff Portal</h1>
           <p className="text-gray-400 text-sm mt-1">{CLINIC_NAME}</p>
           {/* PLACEHOLDER: Show clinic operating date/shift from system config */}
           <div className="flex items-center justify-center gap-2 mt-3">
-            <ShieldCheck className="w-4 h-4 text-green-400" />
             <span className="text-xs text-green-400 font-semibold">Secure Access · Authorized Personnel Only</span>
           </div>
         </div>
 
-        {/* Role Selector */}
-        <div className="flex gap-2 mb-5">
-          {(["staff", "admin"] as const).map((r) => (
-            <button
-              key={r}
-              onClick={() => setRole(r)}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all ${
-                role === r
-                  ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20"
-                  : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10"
-              }`}
-            >
-              {r === "staff" ? <Users className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
-              {r === "staff" ? "Clinic Staff" : "Administrator"}
-            </button>
-          ))}
-        </div>
+
 
         {/* Login Card */}
         <div className="bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 p-6 sm:p-8 shadow-2xl">
-          {role === "admin" && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              className="bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-3 mb-5 flex items-start gap-2"
-            >
-              <ShieldCheck className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-300">
-                {/* PLACEHOLDER: Administrator login requires 2FA — connect to /api/auth/2fa-verify */}
-                Administrator accounts have full system access. Ensure you're using your
-                official admin credentials. 2-Factor Authentication may be required.
-              </p>
-            </motion.div>
-          )}
+
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2">
-                {role === "staff" ? "Staff" : "Admin"} Email
+                Email
               </label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -120,7 +87,7 @@ export default function StaffLogin() {
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   // PLACEHOLDER: Use institutional email format (e.g., staff@spdizon-clinic.ph)
-                  placeholder={role === "staff" ? "staff@spdizon-clinic.ph" : "admin@spdizon-clinic.ph"}
+                  placeholder="staff@spdizon-clinic.ph"
                   className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/10 rounded-2xl text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
                 />
               </div>
@@ -176,7 +143,7 @@ export default function StaffLogin() {
                   Authenticating...
                 </>
               ) : (
-                `Sign In as ${role === "staff" ? "Clinic Staff" : "Administrator"}`
+                "Sign In"
               )}
             </motion.button>
           </form>
