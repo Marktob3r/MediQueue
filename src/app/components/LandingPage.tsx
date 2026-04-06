@@ -109,6 +109,12 @@ export default function LandingPage() {
                 How It Works
               </a>
               <a
+                href="#location"
+                className="text-gray-600 hover:text-green-600 transition-colors text-sm font-medium"
+              >
+                Location
+              </a>
+              <a
                 href="#contact"
                 className="text-gray-600 hover:text-green-600 transition-colors text-sm font-medium"
               >
@@ -152,7 +158,7 @@ export default function LandingPage() {
               className="md:hidden bg-white border-t border-green-100 shadow-lg"
             >
               <div className="px-4 py-4 flex flex-col gap-3">
-                {["Features", "How It Works", "Contact"].map(
+                {["Features", "How It Works", "Location", "Contact"].map(
                   (item) => (
                     <a
                       key={item}
@@ -439,6 +445,105 @@ export default function LandingPage() {
       </section>
 
 
+
+      {/* ── LOCATION ── */}
+      <section id="location" className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <span className="text-green-600 font-semibold text-sm uppercase tracking-widest">
+              Visit Us
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-3 mb-4">
+              Where is SPDMC Located?
+            </h2>
+            <p className="text-gray-500 text-lg max-w-2xl mx-auto">
+              Find us easily at our clinic location in Olongapo City.
+            </p>
+          </motion.div>
+
+          <div className="grid lg:grid-cols-3 gap-8 items-center">
+            {/* Contact Info */}
+            <motion.div
+              initial={{ opacity: 0, x: -40 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="space-y-6"
+            >
+              <div className="bg-green-50 rounded-3xl p-6 border border-green-100">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center flex-shrink-0 mt-1">
+                    <MapPin className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-gray-900 mb-1">Address</h4>
+                    <p className="text-gray-600 text-sm leading-relaxed">{CLINIC_ADDRESS}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-emerald-50 rounded-3xl p-6 border border-emerald-100">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center flex-shrink-0 mt-1">
+                    <Phone className="w-6 h-6 text-emerald-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-gray-900 mb-1">Phone</h4>
+                    <a href={`tel:${CLINIC_PHONE}`} className="text-emerald-600 font-semibold text-sm hover:text-emerald-700 transition-colors">
+                      {CLINIC_PHONE}
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-teal-50 rounded-3xl p-6 border border-teal-100">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-teal-100 rounded-2xl flex items-center justify-center flex-shrink-0 mt-1">
+                    <Mail className="w-6 h-6 text-teal-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-gray-900 mb-1">Email</h4>
+                    <a href={`mailto:${CLINIC_EMAIL}`} className="text-teal-600 font-semibold text-sm hover:text-teal-700 transition-colors break-all">
+                      {CLINIC_EMAIL}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Map */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="lg:col-span-2"
+            >
+              <div className="rounded-3xl overflow-hidden shadow-xl border border-gray-100">
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3854.3466!2d120.2805!3d14.8308!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13!3m3!1m2!1s0x3397d6f0f8b8b8b9%3A0x1234567890!2sRM%20Centrepoint%20Bldg%2C%20Magsaysay%20Drive%2C%20Olongapo!5e0!3m2!1sen!2sph!4v1712417400&q=14.830798,120.280720"
+                  width="100%"
+                  height="400"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="w-full"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-4 text-center">
+                Click the map to open directions in Google Maps
+              </p>
+            </motion.div>
+          </div>
+        </div>
+      </section>
 
       {/* ── CTA ── */}
       <section className="py-20 bg-gradient-to-r from-green-600 to-emerald-600">

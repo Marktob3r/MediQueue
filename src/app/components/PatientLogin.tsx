@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
-import { Activity, Eye, EyeOff, Mail, Lock, User, Phone, ArrowLeft, CheckCircle } from "lucide-react";
+import { Activity, Eye, EyeOff, Mail, Lock, User, ArrowLeft, CheckCircle } from "lucide-react";
 
 // PLACEHOLDER: Replace with actual clinic branding colors/logo
 // PLACEHOLDER: Connect these form submissions to your authentication API (e.g., Supabase Auth)
