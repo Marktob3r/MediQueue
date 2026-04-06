@@ -568,14 +568,6 @@ export default function LandingPage() {
               >
                 Get Started as Patient
               </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => navigate("/staff/login")}
-                className="border-2 border-white/50 text-white font-bold px-8 py-4 rounded-2xl hover:bg-white/10 transition-all"
-              >
-                Staff Portal →
-              </motion.button>
             </div>
           </motion.div>
         </div>
@@ -640,7 +632,7 @@ export default function LandingPage() {
 
           <div className="border-t border-gray-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-gray-500 text-sm">
-              © 2026 MediQueue — {CLINIC_NAME}. All rights reserved.
+              © {new Date().getFullYear()} MediQueue — {CLINIC_NAME}. All rights reserved.
             </p>
             <p className="text-gray-600 text-xs">
               {/* PLACEHOLDER: Update version with actual release version */}

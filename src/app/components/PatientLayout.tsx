@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -36,16 +36,30 @@ export default function PatientLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   // PLACEHOLDER: Replace with real notification count from notification API
   const notifCount = 2;
 
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = () => {
     // PLACEHOLDER: Clear auth tokens/session before navigating
     navigate("/");
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="h-screen bg-gray-50 flex">
       {/* ── SIDEBAR ── */}
       {/* Mobile overlay */}
       <AnimatePresence>
@@ -62,9 +76,9 @@ export default function PatientLayout() {
 
       <motion.aside
         initial={false}
-        animate={{ x: sidebarOpen ? 0 : "-100%" }}
+        animate={isMobile ? { x: sidebarOpen ? 0 : "-100%" } : { x: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="fixed left-0 top-0 h-full w-72 bg-white border-r border-gray-100 shadow-xl z-40 flex flex-col lg:translate-x-0 lg:static lg:shadow-none"
+        className="fixed left-0 top-0 h-full w-72 bg-white border-r border-gray-100 shadow-xl z-40 flex flex-col lg:static lg:shadow-none lg:h-screen lg:sticky lg:top-0"
       >
         {/* Logo */}
         <div className="p-6 border-b border-gray-100">
@@ -142,8 +156,8 @@ export default function PatientLayout() {
           })}
         </nav>
 
-        {/* Logout */}
-        <div className="p-4 border-t border-gray-100">
+        {/* Logout - Fixed at bottom */}
+        <div className="flex-shrink-0 p-4 border-t border-gray-100 mt-auto">
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-500 hover:bg-red-50 transition-all"
@@ -192,6 +206,51 @@ export default function PatientLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowLogoutConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl"
+            >
+              <div className="text-center mb-5">
+                <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <LogOut className="w-7 h-7 text-red-500" />
+                </div>
+                <h3 className="font-bold text-gray-900 text-lg">Sign Out?</h3>
+                <p className="text-gray-500 text-sm mt-2">
+                  Are you sure you want to sign out? You'll need to log in again to access your account.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="flex-1 border-2 border-gray-200 text-gray-600 font-semibold py-3 rounded-2xl hover:bg-gray-50 transition-colors text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmLogout}
+                  className="flex-1 bg-red-500 text-white font-bold py-3 rounded-2xl shadow-md hover:bg-red-600 transition-colors text-sm"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
