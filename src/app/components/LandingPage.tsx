@@ -9,8 +9,6 @@ import {
   ChevronRight,
   Activity,
   FileText,
-  Smartphone,
-  Star,
   MapPin,
   Phone,
   Mail,
@@ -20,11 +18,9 @@ import {
 
 // PLACEHOLDER: Replace with actual clinic logo/branding asset
 const CLINIC_NAME = "Samuel P. Dizon Medical Clinic";
-const CLINIC_TAGLINE = "MediQueue — Cloud-Based Queueing with A.I. Analysis";
-// PLACEHOLDER: Replace with actual clinic contact info
-const CLINIC_ADDRESS = "123 Health Avenue, Quezon City, Metro Manila";
-const CLINIC_PHONE = "+63 (2) 8123-4567";
-const CLINIC_EMAIL = "info@spdizon-clinic.ph";
+const CLINIC_ADDRESS = "2/F RM Centrepoint Bldg. Magsaysay Drive cor. Rizal Ave. East Tapinac, Olongapo, Philippines, 2200";
+const CLINIC_PHONE = "0950 331 3347";
+const CLINIC_EMAIL = "thebuj29@yahoo.com.ph";
 
 const features = [
   {
@@ -38,7 +34,7 @@ const features = [
     icon: Bell,
     title: "Smart Notifications",
     description:
-      "Get notified via web push or email when your turn is approaching so you're always ready.",
+      "Get notified via web push when your turn is approaching so you're always ready.",
     color: "bg-emerald-50 text-emerald-600",
   },
   {
@@ -49,56 +45,12 @@ const features = [
     color: "bg-teal-50 text-teal-600",
   },
   {
-    icon: Smartphone,
-    title: "Remote Queue Joining",
-    description:
-      "Join the clinic queue from your home, office, or anywhere — arrive just in time.",
-    color: "bg-green-50 text-green-600",
-  },
-  {
     icon: Shield,
     title: "Secure Medical Records",
     description:
       "Your Electronic Medical Records (EMR) are encrypted and securely stored in the cloud.",
     color: "bg-emerald-50 text-emerald-600",
   },
-  {
-    icon: Activity,
-    title: "A.I.-Powered Analysis",
-    description:
-      "Our AI engine analyzes patient flow and clinic operations to continuously improve efficiency.",
-    color: "bg-teal-50 text-teal-600",
-  },
-];
-
-// PLACEHOLDER: Replace with actual testimonial data from real patients
-const testimonials = [
-  {
-    name: "Maria Santos",
-    role: "Regular Patient",
-    text: "I used to wait 3 hours at the clinic. Now I join the queue at home and arrive just in time. Amazing!",
-    rating: 5,
-  },
-  {
-    name: "Jose Reyes",
-    role: "Patient",
-    text: "The digital intake form saved so much time. The doctor already knew my concerns before I even sat down.",
-    rating: 5,
-  },
-  {
-    name: "Ana Cruz",
-    role: "Patient",
-    text: "Getting notified on my phone when my number is almost up is a game-changer. No more crowded waiting rooms!",
-    rating: 5,
-  },
-];
-
-// PLACEHOLDER: Replace with real-time stats from the database/analytics API
-const stats = [
-  { label: "Average Wait Time", value: "18 min", sub: "vs. 2+ hrs before" },
-  { label: "Patients Served Daily", value: "120+", sub: "and growing" },
-  { label: "Queue Satisfaction", value: "97%", sub: "patient approval" },
-  { label: "Wait Time Reduction", value: "85%", sub: "improvement" },
 ];
 
 export default function LandingPage() {
@@ -157,12 +109,6 @@ export default function LandingPage() {
                 How It Works
               </a>
               <a
-                href="#testimonials"
-                className="text-gray-600 hover:text-green-600 transition-colors text-sm font-medium"
-              >
-                Testimonials
-              </a>
-              <a
                 href="#contact"
                 className="text-gray-600 hover:text-green-600 transition-colors text-sm font-medium"
               >
@@ -206,7 +152,7 @@ export default function LandingPage() {
               className="md:hidden bg-white border-t border-green-100 shadow-lg"
             >
               <div className="px-4 py-4 flex flex-col gap-3">
-                {["Features", "How It Works", "Testimonials", "Contact"].map(
+                {["Features", "How It Works", "Contact"].map(
                   (item) => (
                     <a
                       key={item}
@@ -284,17 +230,8 @@ export default function LandingPage() {
                   onClick={() => navigate("/patient/login")}
                   className="flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all"
                 >
-                  Get Your Queue Token
+                  Get Your Queue Number
                   <ChevronRight className="w-5 h-5" />
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => navigate("/patient/queue/monitor")}
-                  className="flex items-center justify-center gap-2 border-2 border-green-300 text-green-700 font-bold px-8 py-4 rounded-2xl hover:bg-green-50 transition-all"
-                >
-                  <Clock className="w-5 h-5" />
-                  View Live Queue
                 </motion.button>
               </div>
             </motion.div>
@@ -323,9 +260,9 @@ export default function LandingPage() {
                   {/* Queue number */}
                   <div className="text-center py-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl mb-4">
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">
-                      Your Token
+                      Your Number
                     </p>
-                    {/* PLACEHOLDER: Replace with actual queue token from API */}
+                    {/* PLACEHOLDER: Replace with actual queue number from API */}
                     <p className="text-6xl font-black text-green-600">A-052</p>
                     <p className="text-sm text-gray-500 mt-1">
                       Currently serving: <strong className="text-gray-700">A-047</strong>
@@ -383,24 +320,6 @@ export default function LandingPage() {
             </motion.div>
           </div>
 
-          {/* Stats row */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-            className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-20"
-          >
-            {stats.map((stat, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-2xl p-5 shadow-md border border-green-50 text-center hover:shadow-lg transition-shadow"
-              >
-                <p className="text-3xl font-extrabold text-green-600">{stat.value}</p>
-                <p className="text-sm font-semibold text-gray-700 mt-1">{stat.label}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{stat.sub}</p>
-              </div>
-            ))}
-          </motion.div>
         </div>
       </section>
 
@@ -488,7 +407,7 @@ export default function LandingPage() {
               {
                 step: "04",
                 title: "Get Notified",
-                desc: "Receive a push or email alert when your turn is coming up. Arrive just in time!",
+                desc: "Receive a push alert when your turn is coming up. Arrive just in time!",
                 icon: Bell,
               },
             ].map((item, i) => (
@@ -519,56 +438,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── TESTIMONIALS ── */}
-      <section id="testimonials" className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <span className="text-green-600 font-semibold text-sm uppercase tracking-widest">
-              Patient Stories
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-3">
-              What Patients Are Saying
-            </h2>
-            {/* PLACEHOLDER: Pull real testimonials from database or review system */}
-          </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((t, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="bg-gradient-to-br from-green-50 to-white rounded-3xl p-6 border border-green-100 shadow-sm"
-              >
-                <div className="flex mb-3">
-                  {Array.from({ length: t.rating }).map((_, si) => (
-                    <Star key={si} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                  ))}
-                </div>
-                <p className="text-gray-600 text-sm leading-relaxed mb-4 italic">
-                  "{t.text}"
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                    {t.name[0]}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-800 text-sm">{t.name}</p>
-                    <p className="text-xs text-gray-400">{t.role}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ── CTA ── */}
       <section className="py-20 bg-gradient-to-r from-green-600 to-emerald-600">
@@ -665,11 +535,11 @@ export default function LandingPage() {
 
           <div className="border-t border-gray-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-gray-500 text-sm">
-              © 2025 MediQueue — {CLINIC_NAME}. All rights reserved.
+              © 2026 MediQueue — {CLINIC_NAME}. All rights reserved.
             </p>
             <p className="text-gray-600 text-xs">
               {/* PLACEHOLDER: Update version with actual release version */}
-              Version 1.0.0 · Built with ❤️ for better healthcare
+              Version 1.0.0
             </p>
           </div>
         </div>
