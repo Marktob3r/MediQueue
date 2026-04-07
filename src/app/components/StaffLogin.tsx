@@ -1,37 +1,50 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { motion } from "motion/react";
-import { Activity, Mail, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Activity, Mail, Lock, Eye, EyeOff, ArrowLeft, AlertCircle } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 
-// PLACEHOLDER: Replace with actual clinic branding
 const CLINIC_NAME = "Samuel P. Dizon Medical Clinic";
-
-// PLACEHOLDER: Staff/Admin authentication should go through a secure backend
-// Connect to POST /api/auth/staff-login with role-based access control (RBAC)
-// Roles: "staff" → Staff Dashboard, "admin" → Admin Dashboard
 
 export default function StaffLogin() {
   const navigate = useNavigate();
+  const { signIn, userRole } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // PLACEHOLDER: Replace with real API call to POST /api/auth/staff-login
-  // Response should include: { token, refreshToken, role, user: { name, staffId, department } }
-  // The role property will determine redirect: "admin" → /admin/dashboard, "staff" → /staff/dashboard
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
+    setLoading(true);
 
-    await new Promise((r) => setTimeout(r, 1500));
+    try {
+      if (!form.email || !form.password) {
+        throw new Error("Please fill in all fields");
+      }
 
-    setLoading(false);
+      await signIn(form.email, form.password);
 
-    // PLACEHOLDER: In real implementation, use role from API response to redirect accordingly
-    // For now, defaulting to staff dashboard
-    navigate("/staff/dashboard");
+      // Check user role and redirect accordingly
+      // Note: userRole might not update immediately, so we'll handle this in useEffect
+      // For now, redirect to staff dashboard as default
+      setTimeout(() => {
+        if (userRole === "admin") {
+          navigate("/admin/dashboard");
+        } else if (userRole === "staff") {
+          navigate("/staff/dashboard");
+        } else {
+          setError("You don't have staff privileges. Please use patient portal.");
+          navigate("/patient/login");
+        }
+      }, 500);
+    } catch (err: any) {
+      setError(err.message || "Authentication failed. Please check your credentials.");
+      console.error("Staff login error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

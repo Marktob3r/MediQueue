@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
-import { Activity, Eye, EyeOff, Mail, Lock, User, ArrowLeft, CheckCircle } from "lucide-react";
-
-// PLACEHOLDER: Replace with actual clinic branding colors/logo
-// PLACEHOLDER: Connect these form submissions to your authentication API (e.g., Supabase Auth)
+import { Activity, Eye, EyeOff, Mail, Lock, User, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 
 type Tab = "login" | "register";
 
@@ -12,12 +10,13 @@ const CLINIC_NAME = "Samuel P. Dizon Medical Clinic";
 
 export default function PatientLogin() {
   const navigate = useNavigate();
+  const { signIn, signUp } = useAuth();
   const [tab, setTab] = useState<Tab>("login");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // PLACEHOLDER: Replace with real form state management (react-hook-form recommended)
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [regForm, setRegForm] = useState({
     firstName: "",
@@ -29,27 +28,74 @@ export default function PatientLogin() {
     agreeTerms: false,
   });
 
-  // PLACEHOLDER: Replace with actual API call to authenticate user
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
-    // Simulate API call delay
-    await new Promise((r) => setTimeout(r, 1500));
-    setLoading(false);
-    navigate("/patient/dashboard");
+    
+    try {
+      if (!loginForm.email || !loginForm.password) {
+        throw new Error("Please fill in all fields");
+      }
+
+      await signIn(loginForm.email, loginForm.password);
+      navigate("/patient/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Sign in failed. Please check your credentials.");
+      console.error("Login error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // PLACEHOLDER: Replace with actual API call to register new patient
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1800));
-    setLoading(false);
-    setSuccess(true);
-    setTimeout(() => {
-      setSuccess(false);
-      setTab("login");
-    }, 2500);
+
+    try {
+      if (!regForm.firstName || !regForm.lastName || !regForm.email || !regForm.password) {
+        throw new Error("Please fill in all required fields");
+      }
+
+      if (regForm.password !== regForm.confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+
+      if (regForm.password.length < 6) {
+        throw new Error("Password must be at least 6 characters");
+      }
+
+      if (!regForm.agreeTerms) {
+        throw new Error("You must agree to the terms and conditions");
+      }
+
+      await signUp(regForm.email, regForm.password, {
+        firstName: regForm.firstName,
+        lastName: regForm.lastName,
+        phone: regForm.phone,
+      });
+
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+        setTab("login");
+        setRegForm({
+          firstName: "",
+          lastName: "",
+          email: "",
+          phone: "",
+          password: "",
+          confirmPassword: "",
+          agreeTerms: false,
+        });
+      }, 3000);
+    } catch (err: any) {
+      setError(err.message || "Registration failed. Please try again.");
+      console.error("Registration error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -80,6 +126,18 @@ export default function PatientLogin() {
 
         {/* Card */}
         <div className="bg-white rounded-3xl shadow-xl border border-green-100 overflow-hidden">
+          {/* Error Alert */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-50 border-b border-red-200 p-4 flex items-start gap-3"
+            >
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700">{error}</p>
+            </motion.div>
+          )}
+
           {/* Tab switcher */}
           <div className="flex border-b border-gray-100">
             {(["login", "register"] as Tab[]).map((t) => (
@@ -228,6 +286,20 @@ export default function PatientLogin() {
                         value={regForm.email}
                         onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
                         placeholder="juan@email.com"
+                        className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">Phone (Optional)</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="tel"
+                        value={regForm.phone}
+                        onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
+                        placeholder="+63 XXX XXXX XXX"
                         className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
                       />
                     </div>
