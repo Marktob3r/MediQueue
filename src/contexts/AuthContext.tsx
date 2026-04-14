@@ -1,16 +1,24 @@
 import React, { createContext, ReactNode, useEffect, useState } from "react";
-import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "../config/supabase";
+import bcrypt from "bcryptjs";
 
 export type UserRole = "patient" | "staff" | "admin";
 
-export interface AuthUser extends User {
-  role?: UserRole;
+export interface AuthUser {
+  id: string;
+  patient_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string | null;
+  role: UserRole;
+  created_at: string;
+  last_login: string | null;
+  is_active: boolean;
 }
 
 export interface AuthContextType {
   user: AuthUser | null;
-  session: Session | null;
   loading: boolean;
   isAuthenticated: boolean;
   userRole: UserRole | null;
@@ -26,113 +34,76 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
 
-  // Initialize auth state on mount
+  // Check for existing session on mount
   useEffect(() => {
-    const initializeAuth = async () => {
+    const checkSession = async () => {
       try {
-        // Get current session
-        const {
-          data: { session: currentSession },
-          error,
-        } = await supabase.auth.getSession();
-
-        if (error) throw error;
-
-        if (currentSession?.user) {
-          setSession(currentSession);
-          setUser(currentSession.user as AuthUser);
-
-          // Fetch user role from database
-          const userRole = await fetchUserRole(currentSession.user.id);
-          setUserRole(userRole);
+        const storedUser = localStorage.getItem('patient_user');
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          setUserRole(parsedUser.role);
         }
       } catch (error) {
-        console.error("Auth initialization error:", error);
+        console.error("Session check error:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    initializeAuth();
-
-    // Subscribe to auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      setSession(newSession);
-      setUser(newSession?.user as AuthUser | null);
-
-      if (newSession?.user) {
-        const userRole = await fetchUserRole(newSession.user.id);
-        setUserRole(userRole);
-      } else {
-        setUserRole(null);
-      }
-    });
-
-    return () => subscription?.unsubscribe();
+    checkSession();
   }, []);
 
-  const fetchUserRole = async (userId: string): Promise<UserRole | null> => {
+  const signUp = async (email: string, password: string, userData: any) => {
     try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
+      console.log("Starting signup...");
+      
+      // Hash the password
+      const salt = await bcrypt.genSalt(10);
+      const password_hash = await bcrypt.hash(password, salt);
+
+      // Check if user already exists
+      const { data: existingUser, error: checkError } = await supabase
+        .from("patients")
+        .select("email")
+        .eq("email", email)
         .single();
 
-      if (error) throw error;
-      return data?.role as UserRole;
-    } catch (error) {
-      console.error("Error fetching user role:", error);
-      return null;
-    }
-  };
+      if (existingUser) {
+        throw new Error("User with this email already exists");
+      }
 
-  const signUp = async (
-    email: string,
-    password: string,
-    userData: any
-  ) => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: userData,
-        },
-      });
+      // Insert new patient
+      const { data, error } = await supabase
+        .from("patients")
+        .insert({
+          email: email,
+          password_hash: password_hash,
+          first_name: userData.first_name,
+          last_name: userData.last_name,
+          phone: userData.phone || null,
+          role: "patient",
+          created_at: new Date().toISOString(),
+          is_active: true,
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Insert error:", error);
+        throw new Error(error.message);
+      }
 
-      if (data.user) {
-        // Create user profile in database
-        const { error: profileError } = await supabase
-          .from("user_profiles")
-          .insert({
-            user_id: data.user.id,
-            email: data.user.email,
-            first_name: userData.firstName,
-            last_name: userData.lastName,
-            phone: userData.phone,
-            created_at: new Date().toISOString(),
-          });
-
-        if (profileError) throw profileError;
-
-        // Create default role (patient)
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .insert({
-            user_id: data.user.id,
-            role: "patient",
-          });
-
-        if (roleError) throw roleError;
+      if (data) {
+        // Remove password_hash from user object
+        const { password_hash: _, ...patientUser } = data;
+        setUser(patientUser as AuthUser);
+        setUserRole("patient");
+        localStorage.setItem('patient_user', JSON.stringify(patientUser));
+        console.log("Signup successful");
       }
     } catch (error) {
       console.error("Sign up error:", error);
@@ -142,21 +113,46 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      console.log("Signing in...");
+      
+      // Get user by email
+      const { data, error } = await supabase
+        .from("patients")
+        .select("*")
+        .eq("email", email)
+        .single();
 
-      if (error) throw error;
-
-      if (data.session) {
-        setSession(data.session);
-        setUser(data.user as AuthUser);
-
-        // Fetch user role
-        const userRole = await fetchUserRole(data.user.id);
-        setUserRole(userRole);
+      if (error) {
+        console.error("Fetch error:", error);
+        throw new Error("Invalid email or password");
       }
+      
+      if (!data) {
+        throw new Error("Invalid email or password");
+      }
+      
+      if (!data.is_active) {
+        throw new Error("Account is deactivated");
+      }
+
+      // Verify password
+      const isValidPassword = await bcrypt.compare(password, data.password_hash);
+      if (!isValidPassword) {
+        throw new Error("Invalid email or password");
+      }
+
+      // Update last login
+      await supabase
+        .from("patients")
+        .update({ last_login: new Date().toISOString() })
+        .eq("id", data.id);
+
+      // Remove password_hash from user object
+      const { password_hash: _, ...patientUser } = data;
+      setUser(patientUser as AuthUser);
+      setUserRole(patientUser.role);
+      localStorage.setItem('patient_user', JSON.stringify(patientUser));
+      console.log("Sign in successful");
     } catch (error) {
       console.error("Sign in error:", error);
       throw error;
@@ -164,26 +160,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const signOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-
-      setUser(null);
-      setSession(null);
-      setUserRole(null);
-    } catch (error) {
-      console.error("Sign out error:", error);
-      throw error;
-    }
+    setUser(null);
+    setUserRole(null);
+    localStorage.removeItem('patient_user');
+    console.log("Sign out successful");
   };
 
   const updateUserRole = (role: UserRole) => {
     setUserRole(role);
+    if (user) {
+      const updatedUser = { ...user, role };
+      setUser(updatedUser);
+      localStorage.setItem('patient_user', JSON.stringify(updatedUser));
+    }
   };
 
   const value: AuthContextType = {
     user,
-    session,
     loading,
     isAuthenticated: !!user,
     userRole,

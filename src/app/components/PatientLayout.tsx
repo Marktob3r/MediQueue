@@ -13,33 +13,18 @@ import {
   X,
   ChevronRight,
 } from "lucide-react";
-
-// PLACEHOLDER: Replace with actual logged-in patient data from auth context
-const MOCK_PATIENT = {
-  name: "Juan dela Cruz",
-  email: "juan@email.com",
-  patientId: "P-2025-0042",
-  // PLACEHOLDER: token from real queue API
-  hasActiveQueue: true,
-  queueToken: "A-052",
-};
-
-const navItems = [
-  { path: "/patient/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { path: "/patient/queue/monitor", icon: Clock, label: "Live Queue" },
-  { path: "/patient/queue/join", icon: FileText, label: "Join Queue" },
-  { path: "/patient/medical-history", icon: FileText, label: "Medical History" },
-  { path: "/patient/settings", icon: Settings, label: "Settings" },
-];
+import { useAuth } from "../../contexts/AuthContext";
+import { supabase } from "../../config/supabase";
 
 export default function PatientLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  // PLACEHOLDER: Replace with real notification count from notification API
-  const notifCount = 2;
+  const [notifCount, setNotifCount] = useState(0);
+  const [activeQueue, setActiveQueue] = useState<any>(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -49,19 +34,86 @@ export default function PatientLayout() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Fetch notification count and active queue
+  useEffect(() => {
+    if (user?.id) {
+      fetchNotifications();
+      fetchActiveQueue();
+    }
+  }, [user]);
+
+  const fetchNotifications = async () => {
+    try {
+      const { count, error } = await supabase
+        .from("notifications")
+        .select("*", { count: 'exact', head: true })
+        .eq("patient_id", user?.id)
+        .eq("read", false);
+
+      if (!error && count) {
+        setNotifCount(count);
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
+  };
+
+  const fetchActiveQueue = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("queue_entries")
+        .select("*")
+        .eq("patient_id", user?.id)
+        .eq("status", "waiting")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!error && data) {
+        setActiveQueue(data);
+      }
+    } catch (error) {
+      // No active queue found
+      setActiveQueue(null);
+    }
+  };
+
   const handleLogout = () => {
     setShowLogoutConfirm(true);
   };
 
-  const confirmLogout = () => {
-    // PLACEHOLDER: Clear auth tokens/session before navigating
+  const confirmLogout = async () => {
+    await signOut();
     navigate("/");
+  };
+
+  const navItems = [
+    { path: "/patient/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { path: "/patient/queue/monitor", icon: Clock, label: "Live Queue" },
+    { path: "/patient/queue/join", icon: FileText, label: "Join Queue" },
+    { path: "/patient/medical-history", icon: FileText, label: "Medical History" },
+    { path: "/patient/settings", icon: Settings, label: "Settings" },
+  ];
+
+  // Get user initial for avatar
+  const getUserInitial = () => {
+    if (user?.first_name) {
+      return user.first_name.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
+
+  // Get patient name
+  const getPatientName = () => {
+    if (user?.first_name && user?.last_name) {
+      return `${user.first_name} ${user.last_name}`;
+    }
+    return "Patient";
   };
 
   return (
     <div className="h-screen bg-gray-50 flex">
       {/* ── SIDEBAR ── */}
-      {/* Mobile overlay */}
       <AnimatePresence>
         {sidebarOpen && (
           <motion.div
@@ -101,27 +153,25 @@ export default function PatientLayout() {
           </div>
         </div>
 
-        {/* Patient Info */}
+        {/* Patient Info - DYNAMIC */}
         <div className="px-4 py-4 border-b border-gray-100">
           <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold">
-                {/* PLACEHOLDER: Use patient's actual profile photo */}
-                {MOCK_PATIENT.name[0]}
+              <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                {getUserInitial()}
               </div>
               <div className="min-w-0">
-                <p className="font-semibold text-gray-900 text-sm truncate">{MOCK_PATIENT.name}</p>
-                <p className="text-xs text-gray-500 truncate">{MOCK_PATIENT.patientId}</p>
+                <p className="font-semibold text-gray-900 text-sm truncate">{getPatientName()}</p>
+                <p className="text-xs text-gray-500 truncate">{user?.patient_id || "Loading..."}</p>
               </div>
             </div>
-            {/* Active queue token badge */}
-            {MOCK_PATIENT.hasActiveQueue && (
+            {/* Active queue token badge - DYNAMIC */}
+            {activeQueue && (
               <div className="mt-3 flex items-center justify-between bg-white rounded-xl px-3 py-2 shadow-sm">
                 <div>
                   <p className="text-xs text-gray-400">Active Token</p>
-                  <p className="font-black text-green-600 text-lg">{MOCK_PATIENT.queueToken}</p>
+                  <p className="font-black text-green-600 text-lg">{activeQueue.token}</p>
                 </div>
-                {/* PLACEHOLDER: Real-time queue status from API */}
                 <span className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-100 px-2 py-1 rounded-full">
                   <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                   In Queue
@@ -156,7 +206,7 @@ export default function PatientLayout() {
           })}
         </nav>
 
-        {/* Logout - Fixed at bottom */}
+        {/* Logout */}
         <div className="flex-shrink-0 p-4 border-t border-gray-100 mt-auto">
           <button
             onClick={handleLogout}
@@ -186,8 +236,11 @@ export default function PatientLayout() {
           </div>
 
           <div className="flex items-center gap-3 ml-auto">
-            {/* PLACEHOLDER: Connect to real notification system */}
-            <button className="relative p-2.5 rounded-2xl bg-gray-50 hover:bg-green-50 text-gray-500 hover:text-green-600 transition-all">
+            {/* Notification Bell with real count */}
+            <button 
+              onClick={() => navigate("/patient/notifications")}
+              className="relative p-2.5 rounded-2xl bg-gray-50 hover:bg-green-50 text-gray-500 hover:text-green-600 transition-all"
+            >
               <Bell className="w-5 h-5" />
               {notifCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
@@ -196,7 +249,7 @@ export default function PatientLayout() {
               )}
             </button>
             <div className="w-9 h-9 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-              {MOCK_PATIENT.name[0]}
+              {getUserInitial()}
             </div>
           </div>
         </header>

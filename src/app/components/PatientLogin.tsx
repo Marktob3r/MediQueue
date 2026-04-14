@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
-import { Activity, Eye, EyeOff, Mail, Lock, User, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
+import { Activity, Eye, EyeOff, Mail, Lock, User, ArrowLeft, CheckCircle, AlertCircle, Phone } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
 type Tab = "login" | "register";
@@ -19,10 +19,10 @@ export default function PatientLogin() {
 
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [regForm, setRegForm] = useState({
-    firstName: "",
-    lastName: "",
+    first_name: "",
+    last_name: "",
     email: "",
-    phone: "",  
+    phone: "",
     password: "",
     confirmPassword: "",
     agreeTerms: false,
@@ -54,7 +54,7 @@ export default function PatientLogin() {
     setLoading(true);
 
     try {
-      if (!regForm.firstName || !regForm.lastName || !regForm.email || !regForm.password) {
+      if (!regForm.first_name || !regForm.last_name || !regForm.email || !regForm.password) {
         throw new Error("Please fill in all required fields");
       }
 
@@ -71,25 +71,14 @@ export default function PatientLogin() {
       }
 
       await signUp(regForm.email, regForm.password, {
-        firstName: regForm.firstName,
-        lastName: regForm.lastName,
+        first_name: regForm.first_name,
+        last_name: regForm.last_name,
         phone: regForm.phone,
       });
 
-      setSuccess(true);
-      setTimeout(() => {
-        setSuccess(false);
-        setTab("login");
-        setRegForm({
-          firstName: "",
-          lastName: "",
-          email: "",
-          phone: "",
-          password: "",
-          confirmPassword: "",
-          agreeTerms: false,
-        });
-      }, 3000);
+      // Navigate directly to dashboard after successful registration
+      navigate("/patient/dashboard");
+      
     } catch (err: any) {
       setError(err.message || "Registration failed. Please try again.");
       console.error("Registration error:", err);
@@ -143,7 +132,10 @@ export default function PatientLogin() {
             {(["login", "register"] as Tab[]).map((t) => (
               <button
                 key={t}
-                onClick={() => setTab(t)}
+                onClick={() => {
+                  setTab(t);
+                  setError(null);
+                }}
                 className={`flex-1 py-4 text-sm font-semibold transition-all ${
                   tab === t
                     ? "text-green-700 border-b-2 border-green-500 bg-green-50/50"
@@ -174,7 +166,6 @@ export default function PatientLogin() {
                     </label>
                     <div className="relative">
                       <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      {/* PLACEHOLDER: Bind to authentication state manager */}
                       <input
                         type="email"
                         required
@@ -189,7 +180,6 @@ export default function PatientLogin() {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <label className="block text-sm font-semibold text-gray-700">Password</label>
-                      {/* PLACEHOLDER: Link to actual password reset flow */}
                       <button type="button" className="text-xs text-green-600 hover:text-green-700 font-medium">
                         Forgot password?
                       </button>
@@ -243,19 +233,18 @@ export default function PatientLogin() {
                   onSubmit={handleRegister}
                   className="space-y-4"
                 >
-                  {/* PLACEHOLDER: Add more fields as needed: date of birth, gender, address, etc. */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                        First Name
+                        First Name *
                       </label>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
                           type="text"
                           required
-                          value={regForm.firstName}
-                          onChange={(e) => setRegForm({ ...regForm, firstName: e.target.value })}
+                          value={regForm.first_name}
+                          onChange={(e) => setRegForm({ ...regForm, first_name: e.target.value })}
                           placeholder="Juan"
                           className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
                         />
@@ -263,13 +252,13 @@ export default function PatientLogin() {
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                        Last Name
+                        Last Name *
                       </label>
                       <input
                         type="text"
                         required
-                        value={regForm.lastName}
-                        onChange={(e) => setRegForm({ ...regForm, lastName: e.target.value })}
+                        value={regForm.last_name}
+                        onChange={(e) => setRegForm({ ...regForm, last_name: e.target.value })}
                         placeholder="Dela Cruz"
                         className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
                       />
@@ -277,7 +266,9 @@ export default function PatientLogin() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">Email</label>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                      Email *
+                    </label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
@@ -292,9 +283,11 @@ export default function PatientLogin() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">Phone (Optional)</label>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                      Phone (Optional)
+                    </label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="tel"
                         value={regForm.phone}
@@ -307,7 +300,9 @@ export default function PatientLogin() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1.5">Password</label>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                        Password *
+                      </label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
@@ -321,7 +316,9 @@ export default function PatientLogin() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1.5">Confirm</label>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                        Confirm *
+                      </label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
@@ -357,7 +354,6 @@ export default function PatientLogin() {
                     </div>
                     <span className="text-xs text-gray-500 leading-relaxed">
                       I agree to the{" "}
-                      {/* PLACEHOLDER: Link to actual Terms of Service document */}
                       <span className="text-green-600 font-semibold cursor-pointer hover:underline">
                         Terms of Service
                       </span>{" "}
@@ -407,7 +403,7 @@ export default function PatientLogin() {
                   <p className="text-gray-500 text-sm">
                     Your patient account has been successfully created.
                     <br />
-                    Redirecting to login...
+                    Redirecting to dashboard...
                   </p>
                 </motion.div>
               )}
