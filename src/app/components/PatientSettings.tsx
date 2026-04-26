@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import {
   User,
@@ -10,80 +10,230 @@ import {
   Eye,
   EyeOff,
   Save,
-  Camera,
   Lock,
-  Accessibility,
-  LogOut,
-  ChevronRight,
+  Calendar,
+  Heart,
+  Users,
 } from "lucide-react";
-
-// PLACEHOLDER: Fetch from GET /api/patient/profile (authenticated)
-const MOCK_PROFILE = {
-  firstName: "Juan",
-  lastName: "dela Cruz",
-  email: "juan@email.com",
-  phone: "+63 917 123 4567",
-  address: "123 Rizal St., Quezon City",
-  dateOfBirth: "1990-05-15",
-  gender: "Male",
-  bloodType: "O+",
-  emergencyContact: "Maria dela Cruz",
-  emergencyPhone: "+63 918 765 4321",
-  profilePhoto: null, // PLACEHOLDER: URL to profile photo in Supabase Storage
-};
-
-// PLACEHOLDER: Fetch from GET /api/patient/notification-preferences
-const MOCK_NOTIF_PREFS = {
-  pushEnabled: true,
-  emailEnabled: true,
-  smsEnabled: false,
-  notifyAt5: true,
-  notifyAt2: true,
-  queueUpdates: true,
-  prescriptionReminders: true,
-  appointmentReminders: true,
-};
-
-// PLACEHOLDER: Fetch from GET /api/patient/accessibility-settings
-const MOCK_ACCESSIBILITY = {
-  largeText: false,
-  highContrast: false,
-  reducedMotion: false,
-};
+import { useAuth } from "../../contexts/AuthContext";
+import { supabase } from "../../config/supabase";
+import bcrypt from "bcryptjs";
 
 export default function PatientSettings() {
-  const [profile, setProfile] = useState(MOCK_PROFILE);
-  const [notifPrefs, setNotifPrefs] = useState(MOCK_NOTIF_PREFS);
-  const [accessibility, setAccessibility] = useState(MOCK_ACCESSIBILITY);
-  const [activeTab, setActiveTab] = useState<"profile" | "notifications" | "security" | "accessibility">("profile");
+  const { user, refreshUser } = useAuth();
+  const [profile, setProfile] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    address: "",
+    date_of_birth: "",
+    gender: "",
+    blood_type: "",
+    emergency_contact: "",
+    emergency_phone: "",
+  });
+  const [notifPrefs, setNotifPrefs] = useState({
+    push_enabled: true,
+    email_enabled: true,
+    sms_enabled: false,
+    notify_at_5: true,
+    notify_at_2: true,
+    queue_updates: true,
+    prescription_reminders: true,
+    appointment_reminders: true,
+  });
+  const [activeTab, setActiveTab] = useState<"profile" | "notifications" | "security">("profile");
   const [showCurrentPass, setShowCurrentPass] = useState(false);
   const [showNewPass, setShowNewPass] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+      fetchNotificationPrefs();
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("patients")
+        .select("*")
+        .eq("id", user?.id)
+        .single();
+
+      if (error) throw error;
+
+      setProfile({
+        first_name: data.first_name || "",
+        last_name: data.last_name || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        address: data.address || "",
+        date_of_birth: data.date_of_birth || "",
+        gender: data.gender || "",
+        blood_type: data.blood_type || "",
+        emergency_contact: data.emergency_contact || "",
+        emergency_phone: data.emergency_phone || "",
+      });
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchNotificationPrefs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("notification_preferences")
+        .select("*")
+        .eq("patient_id", user?.id)
+        .single();
+
+      if (!error && data) {
+        setNotifPrefs({
+          push_enabled: data.push_enabled,
+          email_enabled: data.email_enabled,
+          sms_enabled: data.sms_enabled,
+          notify_at_5: data.notify_at_5,
+          notify_at_2: data.notify_at_2,
+          queue_updates: data.queue_updates,
+          prescription_reminders: data.prescription_reminders,
+          appointment_reminders: data.appointment_reminders,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching notification prefs:", error);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const { error } = await supabase
+        .from("patients")
+        .update({
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          phone: profile.phone,
+          address: profile.address,
+          date_of_birth: profile.date_of_birth || null,
+          gender: profile.gender,
+          blood_type: profile.blood_type,
+          emergency_contact: profile.emergency_contact,
+          emergency_phone: profile.emergency_phone,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user?.id);
+
+      if (error) throw error;
+
+      await refreshUser();
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveNotifications = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const { error } = await supabase
+        .from("notification_preferences")
+        .upsert({
+          patient_id: user?.id,
+          push_enabled: notifPrefs.push_enabled,
+          email_enabled: notifPrefs.email_enabled,
+          sms_enabled: notifPrefs.sms_enabled,
+          notify_at_5: notifPrefs.notify_at_5,
+          notify_at_2: notifPrefs.notify_at_2,
+          queue_updates: notifPrefs.queue_updates,
+          prescription_reminders: notifPrefs.prescription_reminders,
+          appointment_reminders: notifPrefs.appointment_reminders,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("patient_id", user?.id);
+
+      if (error) throw error;
+
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      setError("New passwords do not match");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      // Verify current password
+      const { data, error: fetchError } = await supabase
+        .from("patients")
+        .select("password_hash")
+        .eq("id", user?.id)
+        .single();
+
+      if (fetchError) throw new Error("User not found");
+
+      const isValid = await bcrypt.compare(currentPassword, data.password_hash);
+      if (!isValid) throw new Error("Current password is incorrect");
+
+      // Hash new password
+      const salt = await bcrypt.genSalt(10);
+      const newHash = await bcrypt.hash(newPassword, salt);
+
+      // Update password
+      const { error: updateError } = await supabase
+        .from("patients")
+        .update({ password_hash: newHash })
+        .eq("id", user?.id);
+
+      if (updateError) throw updateError;
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "security", label: "Security", icon: Shield },
-    { id: "accessibility", label: "Accessibility", icon: Accessibility },
   ] as const;
 
-  // PLACEHOLDER: Replace with actual PATCH /api/patient/profile API call
-  const handleSave = async () => {
-    setSaving(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setSaving(false);
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 2000);
-  };
-
-  const Toggle = ({
-    checked,
-    onChange,
-  }: {
-    checked: boolean;
-    onChange: (val: boolean) => void;
-  }) => (
+  const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (val: boolean) => void }) => (
     <button
       type="button"
       onClick={() => onChange(!checked)}
@@ -97,13 +247,34 @@ export default function PatientSettings() {
     </button>
   );
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-gray-900 mb-1">Settings & Personal Details</h1>
         <p className="text-gray-500 text-sm">Manage your profile, preferences, and security settings.</p>
       </div>
+
+      {/* Success Alert */}
+      {savedSuccess && (
+        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-2xl text-green-700 text-sm">
+          ✓ Settings saved successfully!
+        </div>
+      )}
+
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm">
+          {error}
+        </div>
+      )}
 
       {/* Tab Nav */}
       <div className="flex gap-1 bg-gray-100 rounded-2xl p-1 mb-6 overflow-x-auto">
@@ -112,9 +283,7 @@ export default function PatientSettings() {
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
-              activeTab === tab.id
-                ? "bg-white text-green-700 shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
+              activeTab === tab.id ? "bg-white text-green-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
             }`}
           >
             <tab.icon className="w-4 h-4" />
@@ -123,48 +292,19 @@ export default function PatientSettings() {
         ))}
       </div>
 
-      {/* ── PROFILE TAB ── */}
+      {/* PROFILE TAB */}
       {activeTab === "profile" && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-5"
-        >
-          {/* Profile Photo */}
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-            <h3 className="font-bold text-gray-900 mb-4">Profile Photo</h3>
-            <div className="flex items-center gap-5">
-              <div className="relative">
-                <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center text-white font-black text-2xl shadow-md">
-                  {/* PLACEHOLDER: Display actual profile photo from profile.profilePhoto URL */}
-                  {profile.firstName[0]}
-                </div>
-                <button className="absolute -bottom-1 -right-1 w-7 h-7 bg-white border-2 border-green-500 rounded-full flex items-center justify-center shadow-md hover:bg-green-50 transition-colors">
-                  {/* PLACEHOLDER: Trigger file upload to Supabase Storage */}
-                  <Camera className="w-3.5 h-3.5 text-green-600" />
-                </button>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">{profile.firstName} {profile.lastName}</p>
-                <p className="text-sm text-gray-500">{profile.email}</p>
-                {/* PLACEHOLDER: Patient ID from auth context */}
-                <p className="text-xs text-gray-400 mt-0.5">Patient ID: P-2025-0042</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Personal Info */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
             <h3 className="font-bold text-gray-900 mb-5">Personal Information</h3>
             <div className="grid sm:grid-cols-2 gap-4">
-              {/* PLACEHOLDER: All fields below should be saved to PATCH /api/patient/profile */}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">First Name</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
-                    value={profile.firstName}
-                    onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
+                    value={profile.first_name}
+                    onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
                     className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
                   />
                 </div>
@@ -172,8 +312,8 @@ export default function PatientSettings() {
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Last Name</label>
                 <input
-                  value={profile.lastName}
-                  onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
+                  value={profile.last_name}
+                  onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
                 />
               </div>
@@ -184,62 +324,78 @@ export default function PatientSettings() {
                   <input
                     type="email"
                     value={profile.email}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                    className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                    disabled
+                    className="w-full pl-9 pr-4 py-3 bg-gray-100 border border-gray-200 rounded-2xl text-sm text-gray-500 cursor-not-allowed"
                   />
                 </div>
+                <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Phone Number</label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
-                    value={profile.phone}
+                    value={profile.phone || ""}
                     onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                    placeholder="+63 XXX XXX XXXX"
                     className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
                   />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Date of Birth</label>
-                <input
-                  type="date"
-                  value={profile.dateOfBirth}
-                  onChange={(e) => setProfile({ ...profile, dateOfBirth: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-                />
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="date"
+                    value={profile.date_of_birth || ""}
+                    onChange={(e) => setProfile({ ...profile, date_of_birth: e.target.value })}
+                    className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Gender</label>
                 <select
-                  value={profile.gender}
+                  value={profile.gender || ""}
                   onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
                 >
-                  <option>Male</option>
-                  <option>Female</option>
-                  <option>Prefer not to say</option>
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Blood Type</label>
-                <select
-                  value={profile.bloodType}
-                  onChange={(e) => setProfile({ ...profile, bloodType: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-                >
-                  {["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map((bt) => (
-                    <option key={bt}>{bt}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <Heart className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <select
+                    value={profile.blood_type || ""}
+                    onChange={(e) => setProfile({ ...profile, blood_type: e.target.value })}
+                    className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                  >
+                    <option value="">Select Blood Type</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                  </select>
+                </div>
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Home Address</label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
-                    value={profile.address}
+                    value={profile.address || ""}
                     onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+                    placeholder="Enter your full address"
                     className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
                   />
                 </div>
@@ -247,25 +403,29 @@ export default function PatientSettings() {
             </div>
           </div>
 
-          {/* Emergency Contact */}
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
             <h3 className="font-bold text-gray-900 mb-5">Emergency Contact</h3>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Contact Name</label>
-                <input
-                  value={profile.emergencyContact}
-                  onChange={(e) => setProfile({ ...profile, emergencyContact: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-                />
+                <div className="relative">
+                  <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    value={profile.emergency_contact || ""}
+                    onChange={(e) => setProfile({ ...profile, emergency_contact: e.target.value })}
+                    placeholder="Emergency contact name"
+                    className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Contact Phone</label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
-                    value={profile.emergencyPhone}
-                    onChange={(e) => setProfile({ ...profile, emergencyPhone: e.target.value })}
+                    value={profile.emergency_phone || ""}
+                    onChange={(e) => setProfile({ ...profile, emergency_phone: e.target.value })}
+                    placeholder="Emergency contact number"
                     className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
                   />
                 </div>
@@ -273,24 +433,35 @@ export default function PatientSettings() {
             </div>
           </div>
 
-          <SaveButton saving={saving} success={savedSuccess} onSave={handleSave} />
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={handleSaveProfile}
+            disabled={saving}
+            className="flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm shadow-md transition-all bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg disabled:opacity-70"
+          >
+            {saving ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" /> Save Profile Changes
+              </>
+            )}
+          </motion.button>
         </motion.div>
       )}
 
-      {/* ── NOTIFICATIONS TAB ── */}
+      {/* NOTIFICATIONS TAB */}
       {activeTab === "notifications" && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-5"
-        >
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
             <h3 className="font-bold text-gray-900 mb-5">Notification Channels</h3>
-            {/* PLACEHOLDER: Save to PATCH /api/patient/notification-preferences */}
             {[
-              { key: "pushEnabled", label: "Browser Push Notifications", desc: "Get queue alerts directly in your browser" },
-              { key: "emailEnabled", label: "Email Notifications", desc: `Send alerts to ${profile.email}` },
-              { key: "smsEnabled", label: "SMS Notifications", desc: `Send SMS to ${profile.phone}` },
+              { key: "push_enabled", label: "Browser Push Notifications", desc: "Get queue alerts directly in your browser" },
+              { key: "email_enabled", label: "Email Notifications", desc: `Send alerts to ${profile.email}` },
+              { key: "sms_enabled", label: "SMS Notifications", desc: "Send SMS to your phone" },
             ].map(({ key, label, desc }) => (
               <div key={key} className="flex items-center justify-between py-4 border-b border-gray-50 last:border-0">
                 <div>
@@ -298,7 +469,7 @@ export default function PatientSettings() {
                   <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
                 </div>
                 <Toggle
-                  checked={notifPrefs[key as keyof typeof notifPrefs] as boolean}
+                  checked={notifPrefs[key as keyof typeof notifPrefs]}
                   onChange={(v) => setNotifPrefs({ ...notifPrefs, [key]: v })}
                 />
               </div>
@@ -308,9 +479,11 @@ export default function PatientSettings() {
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
             <h3 className="font-bold text-gray-900 mb-5">Queue Alert Triggers</h3>
             {[
-              { key: "notifyAt5", label: "Alert when 5 patients ahead", desc: "Get advance notice to head to the clinic" },
-              { key: "notifyAt2", label: "Alert when 2 patients ahead", desc: "Final reminder — your turn is very soon!" },
-              { key: "queueUpdates", label: "Queue status updates", desc: "Receive notifications on queue changes" },
+              { key: "notify_at_5", label: "Alert when 5 patients ahead", desc: "Get advance notice to head to the clinic" },
+              { key: "notify_at_2", label: "Alert when 2 patients ahead", desc: "Final reminder — your turn is very soon!" },
+              { key: "queue_updates", label: "Queue status updates", desc: "Receive notifications on queue changes" },
+              { key: "prescription_reminders", label: "Prescription Reminders", desc: "Get reminded about your medications" },
+              { key: "appointment_reminders", label: "Appointment Reminders", desc: "Get notified about upcoming appointments" },
             ].map(({ key, label, desc }) => (
               <div key={key} className="flex items-center justify-between py-4 border-b border-gray-50 last:border-0">
                 <div>
@@ -318,29 +491,40 @@ export default function PatientSettings() {
                   <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
                 </div>
                 <Toggle
-                  checked={notifPrefs[key as keyof typeof notifPrefs] as boolean}
+                  checked={notifPrefs[key as keyof typeof notifPrefs]}
                   onChange={(v) => setNotifPrefs({ ...notifPrefs, [key]: v })}
                 />
               </div>
             ))}
           </div>
 
-          <SaveButton saving={saving} success={savedSuccess} onSave={handleSave} />
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={handleSaveNotifications}
+            disabled={saving}
+            className="flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm shadow-md transition-all bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg disabled:opacity-70"
+          >
+            {saving ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" /> Save Notification Settings
+              </>
+            )}
+          </motion.button>
         </motion.div>
       )}
 
-      {/* ── SECURITY TAB ── */}
+      {/* SECURITY TAB */}
       {activeTab === "security" && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-5"
-        >
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
             <h3 className="font-bold text-gray-900 mb-2">Change Password</h3>
             <p className="text-xs text-gray-400 mb-5">
-              {/* PLACEHOLDER: Connect to POST /api/auth/change-password */}
-              Use a strong password with at least 8 characters including numbers and special characters.
+              Use a strong password with at least 6 characters.
             </p>
             <div className="space-y-4">
               <div>
@@ -349,7 +533,9 @@ export default function PatientSettings() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type={showCurrentPass ? "text" : "password"}
-                    placeholder="••••••••"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter current password"
                     className="w-full pl-9 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
                   />
                   <button onClick={() => setShowCurrentPass(!showCurrentPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -363,7 +549,9 @@ export default function PatientSettings() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type={showNewPass ? "text" : "password"}
-                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password"
                     className="w-full pl-9 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
                   />
                   <button onClick={() => setShowNewPass(!showNewPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -377,106 +565,24 @@ export default function PatientSettings() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="password"
-                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm new password"
                     className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
                   />
                 </div>
               </div>
-              <button className="bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold px-6 py-3 rounded-2xl shadow-md hover:shadow-lg transition-all text-sm">
-                Update Password
+              <button
+                onClick={handleChangePassword}
+                disabled={saving || !currentPassword || !newPassword}
+                className="bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold px-6 py-3 rounded-2xl shadow-md hover:shadow-lg transition-all text-sm disabled:opacity-50"
+              >
+                {saving ? "Updating..." : "Update Password"}
               </button>
             </div>
           </div>
-
-          {/* Danger Zone */}
-          <div className="bg-white rounded-3xl border border-red-100 shadow-sm p-6">
-            <h3 className="font-bold text-red-600 mb-4">Danger Zone</h3>
-            <div className="flex items-center justify-between py-3">
-              <div>
-                <p className="text-sm font-semibold text-gray-800">Delete Account</p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {/* PLACEHOLDER: Implement DELETE /api/patient/account with data retention policy */}
-                  Permanently delete your account and all associated data.
-                </p>
-              </div>
-              <button className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-2xl text-sm font-semibold hover:bg-red-100 transition-colors">
-                Delete
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* ── ACCESSIBILITY TAB ── */}
-      {activeTab === "accessibility" && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-5"
-        >
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-            <h3 className="font-bold text-gray-900 mb-2">Accessibility Options</h3>
-            <p className="text-xs text-gray-400 mb-5">
-              {/* PLACEHOLDER: Connect to PATCH /api/patient/accessibility-settings */}
-              Customize your experience for better readability and usability.
-            </p>
-            {[
-              { key: "largeText", label: "Large Text Mode", desc: "Increase font size across the entire portal" },
-              { key: "highContrast", label: "High Contrast Mode", desc: "Enhance color contrast for better visibility" },
-              { key: "reducedMotion", label: "Reduce Motion", desc: "Minimize animations and transitions" },
-            ].map(({ key, label, desc }) => (
-              <div key={key} className="flex items-center justify-between py-4 border-b border-gray-50 last:border-0">
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">{label}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
-                </div>
-                <Toggle
-                  checked={accessibility[key as keyof typeof accessibility]}
-                  onChange={(v) => setAccessibility({ ...accessibility, [key]: v })}
-                />
-              </div>
-            ))}
-          </div>
-
-          <SaveButton saving={saving} success={savedSuccess} onSave={handleSave} />
         </motion.div>
       )}
     </div>
-  );
-}
-
-function SaveButton({
-  saving,
-  success,
-  onSave,
-}: {
-  saving: boolean;
-  success: boolean;
-  onSave: () => void;
-}) {
-  return (
-    <motion.button
-      whileTap={{ scale: 0.97 }}
-      onClick={onSave}
-      disabled={saving}
-      className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm shadow-md transition-all ${
-        success
-          ? "bg-emerald-500 text-white"
-          : "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg"
-      } disabled:opacity-70`}
-    >
-      {saving ? (
-        <>
-          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          Saving...
-        </>
-      ) : success ? (
-        <>✓ Saved Successfully</>
-      ) : (
-        <>
-          <Save className="w-4 h-4" /> Save Changes
-        </>
-      )}
-    </motion.button>
   );
 }
