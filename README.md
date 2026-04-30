@@ -1,4 +1,4 @@
-# Project title: MediQueue: A Cloud-Based Queueing Solution with A.I. Analysis for Samuel P. Dizon Medical Clinic. 
+# Project title: MediFlow: A Cloud-Based Patient Throughput Solution with A.I. Analysis for Samuel P. Dizon Medical Clinic.
 
 ## Team Composition:
 
