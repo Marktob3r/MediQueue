@@ -71,11 +71,10 @@ export default function LandingPage() {
         initial={{ y: -80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? "bg-white/95 backdrop-blur-md shadow-md"
-            : "bg-transparent"
-        }`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
+          ? "bg-white/95 backdrop-blur-md shadow-md"
+          : "bg-transparent"
+          }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 md:h-20">
@@ -89,7 +88,7 @@ export default function LandingPage() {
                   Medi
                 </span>
                 <span className="text-emerald-500 font-extrabold text-lg leading-none">
-                  Queue
+                  Flow
                 </span>
               </div>
             </div>
@@ -213,9 +212,6 @@ export default function LandingPage() {
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
                 Skip the Wait.{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-emerald-600">
-                  Queue Smarter.
-                </span>
               </h1>
 
               <p className="text-gray-600 text-lg leading-relaxed mb-4">
@@ -236,7 +232,7 @@ export default function LandingPage() {
                   onClick={() => navigate("/patient/login")}
                   className="flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all"
                 >
-                  Get Your Queue Number
+                  Get Your Number
                   <ChevronRight className="w-5 h-5" />
                 </motion.button>
               </div>
