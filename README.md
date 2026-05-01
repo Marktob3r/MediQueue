@@ -30,7 +30,7 @@ SDG 9: Industry, Innovation & Infrastructure
 
 ## Features:
 
-1. Automated Web Push & Email Notification System:
+1. Automated Web Push:
 For sending real-time alerts confirming a patient's spot in line and notifying them when their turn is immediately approaching, reducing physical waiting room congestion.
 
 2. Live Digital Queueing Engine:
