@@ -604,7 +604,7 @@ export default function AdminDashboard() {
                 { time: "9:45 AM", action: "Patient A-047 marked as completed by Staff Ana Reyes", type: "success" },
                 { time: "9:30 AM", action: "A-046 marked as no-show after 15-minute timeout", type: "warning" },
                 { time: "8:05 AM", action: "Daily queue started by Admin Carla Cruz", type: "info" },
-                { time: "8:00 AM", action: "System initialized · MediQueue v1.0.0 started", type: "info" },
+                { time: "8:00 AM", action: "System initialized · MediFlow v1.0.0 started", type: "info" },
               ].map((log, i) => (
                 <div key={i} className="flex items-start gap-3 text-sm py-2 border-b border-gray-50 last:border-0">
                   <span className="text-xs text-gray-400 font-mono w-16 flex-shrink-0 mt-0.5">{log.time}</span>

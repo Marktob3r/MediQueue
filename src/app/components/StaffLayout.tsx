@@ -120,7 +120,7 @@ export default function StaffLayout() {
                 <Activity className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="font-extrabold text-green-700 text-lg leading-none">MediQueue</p>
+                <p className="font-extrabold text-green-700 text-lg leading-none">MediFlow</p>
                 <p className="text-xs text-gray-400 leading-none mt-0.5">
                   {isAdmin ? "Admin Portal" : "Staff Portal"}
                 </p>

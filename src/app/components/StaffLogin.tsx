@@ -175,7 +175,7 @@ export default function StaffLogin() {
 
         <p className="text-center text-xs text-gray-600 mt-4">
           {/* PLACEHOLDER: Replace with actual system version from deployment config */}
-          MediQueue v1.0.0 · Unauthorized access is strictly prohibited
+          MediFlow v1.0.0 · Unauthorized access is strictly prohibited
         </p>
       </motion.div>
     </div>

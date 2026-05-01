@@ -340,13 +340,13 @@ export default function LandingPage() {
             className="text-center mb-16"
           >
             <span className="text-green-600 font-semibold text-sm uppercase tracking-widest">
-              Why MediQueue
+              Why MediFlow
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-3 mb-4">
               Everything You Need for a Stress-Free Visit
             </h2>
             <p className="text-gray-500 text-lg max-w-2xl mx-auto">
-              From remote queue joining to AI-driven analytics, MediQueue
+              From remote queue joining to AI-driven analytics, MediFlow
               transforms how the clinic operates.
             </p>
           </motion.div>
@@ -386,7 +386,7 @@ export default function LandingPage() {
               Simple Process
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-3">
-              How MediQueue Works
+              How MediFlow Works
             </h2>
           </motion.div>
 
@@ -557,7 +557,7 @@ export default function LandingPage() {
               Ready to Skip the Waiting Room?
             </h2>
             <p className="text-green-100 text-lg mb-8">
-              Join MediQueue today and experience a smarter, calmer way to visit the clinic.
+              Join MediFlow today and experience a smarter, calmer way to visit the clinic.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <motion.button
@@ -583,7 +583,7 @@ export default function LandingPage() {
                 <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
                   <Activity className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-white font-extrabold text-lg">MediQueue</span>
+                <span className="text-white font-extrabold text-lg">MediFlow</span>
               </div>
               <p className="text-gray-400 text-sm leading-relaxed">
                 {/* PLACEHOLDER: Update with official clinic description */}
@@ -632,7 +632,7 @@ export default function LandingPage() {
 
           <div className="border-t border-gray-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-gray-500 text-sm">
-              © {new Date().getFullYear()} MediQueue — {CLINIC_NAME}. All rights reserved.
+              © {new Date().getFullYear()} MediFlow — {CLINIC_NAME}. All rights reserved.
             </p>
             <p className="text-gray-600 text-xs">
               {/* PLACEHOLDER: Update version with actual release version */}
