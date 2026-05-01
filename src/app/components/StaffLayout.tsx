@@ -18,37 +18,17 @@ import {
   Shield,
   Sliders,
 } from "lucide-react";
-
-// PLACEHOLDER: Replace with actual logged-in staff info from auth context/JWT
-const MOCK_STAFF = {
-  name: "Nurse Ana Reyes",
-  role: "staff", // "staff" | "admin" — from JWT role claim
-  staffId: "S-2025-001",
-  department: "Front Desk",
-};
-
-const staffNavItems = [
-  { path: "/staff/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { path: "/staff/queue", icon: ListOrdered, label: "Manage Live Queue" },
-  { path: "/staff/walkin", icon: UserPlus, label: "Walk-in Registration" },
-  { path: "/staff/records", icon: FileText, label: "Patient Records" },
-  { path: "/staff/settings", icon: Settings, label: "Settings" },
-];
-
-const adminOnlyItems = [
-  { path: "/admin/dashboard", icon: BarChart3, label: "Analytics & Reports" },
-  { path: "/admin/accounts", icon: Shield, label: "Account Management" },
-  { path: "/admin/queue-controls", icon: Sliders, label: "Daily Queue Controls" },
-];
+import { useAuth } from "../../contexts/AuthContext";
+import { supabase } from "../../config/supabase";
 
 export default function StaffLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, userRole, signOut, isAuthenticated } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  // PLACEHOLDER: notifCount from real-time notification system (WebSocket or SSE)
-  const notifCount = 3;
+  const [notifCount, setNotifCount] = useState(0);
 
   useEffect(() => {
     const handleResize = () => {
@@ -58,18 +38,64 @@ export default function StaffLayout() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const isAdmin = MOCK_STAFF.role === "admin" || location.pathname.startsWith("/admin");
+  // Redirect if not authenticated or not staff/admin
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/staff/login");
+    } else if (userRole !== "staff" && userRole !== "admin") {
+      navigate("/patient/dashboard");
+    }
+  }, [isAuthenticated, userRole, navigate]);
 
-  const handleLogout = () => {
+  // Fetch notification count
+  useEffect(() => {
+    if (user?.id) {
+      fetchNotificationCount();
+    }
+  }, [user]);
+
+  const fetchNotificationCount = async () => {
+    try {
+      const { count, error } = await supabase
+        .from("notifications")
+        .select("*", { count: 'exact', head: true })
+        .eq("patient_id", user?.id)
+        .eq("read", false);
+
+      if (!error && count) {
+        setNotifCount(count);
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
+  };
+
+  const handleLogout = async () => {
     setShowLogoutConfirm(true);
   };
 
-  const confirmLogout = () => {
-    // PLACEHOLDER: Invalidate JWT token, clear session storage, redirect to login
+  const confirmLogout = async () => {
+    await signOut();
     navigate("/staff/login");
   };
 
-  const NavItem = ({ item }: { item: (typeof staffNavItems)[0] }) => {
+  const isAdmin = userRole === "admin";
+
+  const staffNavItems = [
+    { path: "/staff/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { path: "/staff/queue", icon: ListOrdered, label: "Manage Live Queue" },
+    { path: "/staff/walkin", icon: UserPlus, label: "Walk-in Registration" },
+    { path: "/staff/records", icon: FileText, label: "Patient Records" },
+    { path: "/staff/settings", icon: Settings, label: "Settings" },
+  ];
+
+  const adminOnlyItems = [
+    { path: "/admin/dashboard", icon: BarChart3, label: "Analytics & Reports" },
+    { path: "/admin/accounts", icon: Shield, label: "Account Management" },
+    { path: "/admin/queue-controls", icon: Sliders, label: "Daily Queue Controls" },
+  ];
+
+  const NavItem = ({ item }: { item: typeof staffNavItems[0] }) => {
     const active = location.pathname === item.path;
     return (
       <button
@@ -89,6 +115,16 @@ export default function StaffLayout() {
       </button>
     );
   };
+
+  // Get user initial
+  const getUserInitial = () => {
+    if (user?.first_name) {
+      return user.first_name.charAt(0).toUpperCase();
+    }
+    return "S";
+  };
+
+  if (!isAuthenticated) return null;
 
   return (
     <div className="h-screen bg-gray-50 flex">
@@ -132,22 +168,22 @@ export default function StaffLayout() {
           </div>
         </div>
 
-        {/* Staff Info */}
+        {/* Staff Info - DYNAMIC */}
         <div className="px-4 py-4 border-b border-gray-100">
           <div className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-2xl p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold">
-                {/* PLACEHOLDER: Staff photo from HR system */}
-                {MOCK_STAFF.name[6]}
+                {getUserInitial()}
               </div>
               <div className="min-w-0">
-                <p className="font-semibold text-gray-900 text-sm truncate">{MOCK_STAFF.name}</p>
+                <p className="font-semibold text-gray-900 text-sm truncate">
+                  {user?.first_name} {user?.last_name}
+                </p>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  {/* PLACEHOLDER: Role badge from JWT role claim */}
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isAdmin ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700"}`}>
                     {isAdmin ? "Admin" : "Staff"}
                   </span>
-                  <span className="text-xs text-gray-400">{MOCK_STAFF.department}</span>
+                  <span className="text-xs text-gray-400">{user?.role || "Staff"}</span>
                 </div>
               </div>
             </div>
@@ -160,7 +196,7 @@ export default function StaffLayout() {
           {staffNavItems.map((item) => <NavItem key={item.path} item={item} />)}
 
           {/* Admin-only section */}
-          {(isAdmin || MOCK_STAFF.role === "admin") && (
+          {isAdmin && (
             <>
               <div className="pt-4 pb-2">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider px-2">Admin Only</p>
@@ -170,7 +206,7 @@ export default function StaffLayout() {
           )}
         </nav>
 
-        {/* Logout - Fixed at bottom */}
+        {/* Logout */}
         <div className="flex-shrink-0 p-4 border-t border-gray-100 mt-auto">
           <button
             onClick={handleLogout}
@@ -200,7 +236,6 @@ export default function StaffLayout() {
           </div>
 
           <div className="flex items-center gap-3 ml-auto">
-            {/* PLACEHOLDER: Real-time notification count from notification WebSocket */}
             <button className="relative p-2.5 rounded-2xl bg-gray-50 hover:bg-green-50 text-gray-500 hover:text-green-600 transition-all">
               <Bell className="w-5 h-5" />
               {notifCount > 0 && (
@@ -211,11 +246,13 @@ export default function StaffLayout() {
             </button>
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                {MOCK_STAFF.name[6]}
+                {getUserInitial()}
               </div>
               <div className="hidden sm:block">
-                <p className="text-sm font-semibold text-gray-800 leading-none">{MOCK_STAFF.name}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{MOCK_STAFF.staffId}</p>
+                <p className="text-sm font-semibold text-gray-800 leading-none">
+                  {user?.first_name} {user?.last_name}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">{user?.patient_id || "Staff"}</p>
               </div>
             </div>
           </div>

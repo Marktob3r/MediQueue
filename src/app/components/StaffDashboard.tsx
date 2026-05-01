@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -19,148 +19,150 @@ import {
   PlayCircle,
   PauseCircle,
 } from "lucide-react";
-
-// PLACEHOLDER: All data below comes from real-time API/WebSocket
-// Connect to WebSocket ws:///ws/staff-queue for live updates
-// REST fallback: GET /api/staff/queue/live
-
-// PLACEHOLDER: Current queue state from real-time engine
-const MOCK_QUEUE_STATS = {
-  totalToday: 65,
-  served: 47,
-  waiting: 12,
-  absent: 6, // no-shows
-  currentlyServing: "A-048", // PLACEHOLDER: from queue engine
-  avgWaitTime: 8.3, // minutes — from AI analytics
-  peakHour: "10:00 AM", // PLACEHOLDER: AI-predicted peak from historical data
-};
-
-// PLACEHOLDER: Fetch from GET /api/staff/queue/active
-// Sorted by queue order, flagged urgent cases first
-const MOCK_ACTIVE_QUEUE = [
-  {
-    token: "A-048",
-    name: "Maria Santos",
-    age: 45,
-    service: "General Consultation",
-    chiefComplaint: "Persistent cough and fever",
-    waitTime: "Now",
-    status: "serving",
-    urgent: false,
-    joinedAt: "9:15 AM",
-  },
-  {
-    token: "A-049",
-    name: "Jose Reyes",
-    age: 62,
-    service: "Physical Check-up",
-    chiefComplaint: "Chest pain and dizziness",
-    waitTime: "8 min",
-    status: "waiting",
-    urgent: true, // PLACEHOLDER: Flag set by AI triage based on severity score ≥ 8
-    joinedAt: "9:28 AM",
-  },
-  {
-    token: "A-050",
-    name: "Ana Cruz",
-    age: 28,
-    service: "Pediatrics",
-    chiefComplaint: "Child with high fever 39.5°C",
-    waitTime: "16 min",
-    status: "waiting",
-    urgent: false,
-    joinedAt: "9:35 AM",
-  },
-  {
-    token: "A-051",
-    name: "Roberto Garcia",
-    age: 55,
-    service: "Vaccination",
-    chiefComplaint: "Annual flu shot",
-    waitTime: "22 min",
-    status: "waiting",
-    urgent: false,
-    joinedAt: "9:42 AM",
-  },
-  {
-    token: "A-052",
-    name: "Juan dela Cruz",
-    age: 34,
-    service: "General Consultation",
-    chiefComplaint: "Headache and body pain for 3 days",
-    waitTime: "28 min",
-    status: "waiting",
-    urgent: false,
-    joinedAt: "9:15 AM",
-  },
-  {
-    token: "A-053",
-    name: "Lita Torres",
-    age: 71,
-    service: "Follow-up",
-    chiefComplaint: "Hypertension monitoring",
-    waitTime: "33 min",
-    status: "waiting",
-    urgent: false,
-    joinedAt: "9:55 AM",
-  },
-];
-
-type Patient = (typeof MOCK_ACTIVE_QUEUE)[0];
-
-const statusStyles: Record<string, string> = {
-  serving: "bg-green-100 text-green-700",
-  waiting: "bg-gray-100 text-gray-600",
-  absent: "bg-red-100 text-red-600",
-};
+import { useAuth } from "../../contexts/AuthContext";
+import { supabase } from "../../config/supabase";
 
 export default function StaffDashboard() {
   const navigate = useNavigate();
-  const [queue, setQueue] = useState(MOCK_ACTIVE_QUEUE);
+  const { user } = useAuth();
+  const [queue, setQueue] = useState<any[]>([]);
+  const [queueStats, setQueueStats] = useState({
+    totalToday: 0,
+    served: 0,
+    waiting: 0,
+    absent: 0,
+    currentlyServing: "",
+    avgWaitTime: 0,
+  });
   const [queuePaused, setQueuePaused] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [completingToken, setCompletingToken] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [diagnosisNotes, setDiagnosisNotes] = useState("");
 
-  // PLACEHOLDER: POST /api/staff/queue/call-next — triggers notification to next patient
-  const handleCallNext = () => {
-    // Simulate moving queue forward
-    setQueue((prev) => {
-      const updated = [...prev];
-      const currentIdx = updated.findIndex((q) => q.status === "serving");
-      if (currentIdx !== -1) updated[currentIdx].status = "done" as any;
-      const nextIdx = updated.findIndex((q) => q.status === "waiting");
-      if (nextIdx !== -1) updated[nextIdx].status = "serving";
-      return updated;
-    });
+  useEffect(() => {
+    fetchQueueData();
+    
+    // Auto-refresh every 10 seconds
+    const interval = setInterval(fetchQueueData, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchQueueData = async () => {
+    try {
+      // Fetch all active queue entries
+      const { data: queueData, error } = await supabase
+        .from("queue_entries")
+        .select("*")
+        .in("status", ["waiting", "serving"])
+        .order("queue_number", { ascending: true });
+
+      if (error) throw error;
+
+      // Format queue data
+      const formattedQueue = (queueData || []).map((item, index) => ({
+        token: item.token,
+        name: item.patient_name || `Patient ${index + 1}`,
+        service: item.service,
+        chiefComplaint: item.chief_complaint || "No complaint recorded",
+        waitTime: index === 0 ? "Now" : `~${index * 8} min`,
+        status: item.status,
+        urgent: false, // You can add an urgent flag to the table
+        joinedAt: new Date(item.joined_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }));
+
+      setQueue(formattedQueue);
+
+      // Calculate stats
+      const serving = formattedQueue.filter(q => q.status === "serving");
+      const waiting = formattedQueue.filter(q => q.status === "waiting");
+      
+      setQueueStats({
+        totalToday: queueData?.length || 0,
+        served: 0, // You'll need a separate table for completed visits
+        waiting: waiting.length,
+        absent: 0,
+        currentlyServing: serving[0]?.token || "",
+        avgWaitTime: waiting.length * 8,
+      });
+
+    } catch (error) {
+      console.error("Error fetching queue:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // PLACEHOLDER: PATCH /api/staff/queue/{token}/priority — moves patient to urgent priority
-  const handlePriorityOverride = (token: string) => {
-    setQueue((prev) =>
-      prev.map((q) => (q.token === token ? { ...q, urgent: true } : q))
-    );
+  const handleCallNext = async () => {
+    try {
+      const currentServing = queue.find(q => q.status === "serving");
+      const nextPatient = queue.find(q => q.status === "waiting");
+      
+      if (currentServing) {
+        // Mark current as completed
+        await supabase
+          .from("queue_entries")
+          .update({ status: "completed", updated_at: new Date().toISOString() })
+          .eq("token", currentServing.token);
+      }
+      
+      if (nextPatient) {
+        // Mark next as serving
+        await supabase
+          .from("queue_entries")
+          .update({ status: "serving", updated_at: new Date().toISOString() })
+          .eq("token", nextPatient.token);
+      }
+      
+      fetchQueueData();
+    } catch (error) {
+      console.error("Error calling next patient:", error);
+    }
   };
 
-  // PLACEHOLDER: PATCH /api/staff/queue/{token}/status — mark as absent/no-show
-  const handleMarkAbsent = (token: string) => {
-    setQueue((prev) =>
-      prev.map((q) => (q.token === token ? { ...q, status: "absent" as any } : q))
-    );
-  };
-
-  // PLACEHOLDER: POST /api/staff/queue/{token}/complete — finalize visit, trigger EMR update
   const handleComplete = (token: string) => {
     setCompletingToken(token);
+    setDiagnosisNotes("");
     setShowCompleteModal(true);
   };
 
+  const handleCompleteVisit = async () => {
+    try {
+      // Mark as completed
+      await supabase
+        .from("queue_entries")
+        .update({ 
+          status: "completed", 
+          updated_at: new Date().toISOString(),
+          diagnosis_notes: diagnosisNotes 
+        })
+        .eq("token", completingToken);
+      
+      setShowCompleteModal(false);
+      fetchQueueData();
+      handleCallNext();
+    } catch (error) {
+      console.error("Error completing visit:", error);
+    }
+  };
+
   const stats = [
-    { label: "Total Today", value: MOCK_QUEUE_STATS.totalToday, icon: Users, color: "text-blue-600 bg-blue-50" },
-    { label: "Served", value: MOCK_QUEUE_STATS.served, icon: CheckCircle, color: "text-green-600 bg-green-50" },
-    { label: "Waiting", value: MOCK_QUEUE_STATS.waiting, icon: Clock, color: "text-amber-600 bg-amber-50" },
-    { label: "Absent", value: MOCK_QUEUE_STATS.absent, icon: X, color: "text-red-600 bg-red-50" },
+    { label: "Total Today", value: queueStats.totalToday, icon: Users, color: "text-blue-600 bg-blue-50" },
+    { label: "Waiting", value: queueStats.waiting, icon: Clock, color: "text-amber-600 bg-amber-50" },
+    { label: "Avg Wait", value: `${queueStats.avgWaitTime} min`, icon: Activity, color: "text-green-600 bg-green-50" },
+    { label: "Serving", value: queueStats.currentlyServing || "None", icon: CheckCircle, color: "text-purple-600 bg-purple-50" },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const currentPatient = queue.find(q => q.status === "serving");
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
@@ -168,14 +170,11 @@ export default function StaffDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900">Staff Dashboard</h1>
-          {/* PLACEHOLDER: Show actual shift info from staff schedule API */}
           <p className="text-gray-500 text-sm mt-0.5">
             {new Date().toLocaleDateString("en-PH", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-            {" · "}Morning Shift
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {/* PLACEHOLDER: Connect to POST /api/staff/queue/toggle-pause */}
           <button
             onClick={() => setQueuePaused(!queuePaused)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all ${
@@ -238,7 +237,6 @@ export default function StaffDashboard() {
           <div className="bg-gradient-to-br from-green-600 to-emerald-700 rounded-3xl p-6 text-white shadow-xl sticky top-24">
             <div className="flex items-center justify-between mb-4">
               <span className="text-green-200 text-sm font-semibold">Currently Serving</span>
-              {/* PLACEHOLDER: Real-time from WebSocket */}
               <span className="flex items-center gap-1.5 text-xs bg-white/20 px-2.5 py-1 rounded-full font-semibold">
                 <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
                 Live
@@ -246,30 +244,32 @@ export default function StaffDashboard() {
             </div>
 
             <p className="text-7xl font-black mb-2">
-              {/* PLACEHOLDER: Real-time current token from queue engine */}
-              {MOCK_QUEUE_STATS.currentlyServing}
+              {queueStats.currentlyServing || "---"}
             </p>
 
-            {(() => {
-              const current = queue.find((q) => q.status === "serving");
-              return current ? (
-                <div className="bg-white/15 rounded-2xl p-4 mb-4">
-                  <p className="font-bold text-lg">{current.name}</p>
-                  <p className="text-green-200 text-sm">{current.service}</p>
-                  <p className="text-green-100 text-xs mt-1 italic">"{current.chiefComplaint}"</p>
-                  <div className="flex gap-3 mt-3 text-xs text-green-200">
-                    <span>Age: {current.age}</span>
-                    <span>In at {current.joinedAt}</span>
-                  </div>
+            {currentPatient ? (
+              <div className="bg-white/15 rounded-2xl p-4 mb-4">
+                <p className="font-bold text-lg">{currentPatient.name}</p>
+                <p className="text-green-200 text-sm">{currentPatient.service}</p>
+                <p className="text-green-100 text-xs mt-1 italic">"{currentPatient.chiefComplaint}"</p>
+                <div className="flex gap-3 mt-3 text-xs text-green-200">
+                  <span>In at {currentPatient.joinedAt}</span>
                 </div>
-              ) : (
-                <div className="bg-white/10 rounded-2xl p-4 mb-4 text-center text-green-200">
-                  <p>No patient currently being served</p>
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => handleComplete(currentPatient.token)}
+                    className="flex-1 bg-white text-green-700 font-bold py-2 rounded-xl text-sm hover:bg-green-50 transition-colors"
+                  >
+                    Complete Visit
+                  </button>
                 </div>
-              );
-            })()}
+              </div>
+            ) : (
+              <div className="bg-white/10 rounded-2xl p-4 mb-4 text-center text-green-200">
+                <p>No patient currently being served</p>
+              </div>
+            )}
 
-            {/* Call Next */}
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={handleCallNext}
@@ -282,13 +282,11 @@ export default function StaffDashboard() {
             <div className="mt-4 grid grid-cols-2 gap-3 text-center text-sm">
               <div className="bg-white/10 rounded-2xl py-2">
                 <p className="text-green-200 text-xs">Avg Wait</p>
-                {/* PLACEHOLDER: AI-calculated average from analytics engine */}
-                <p className="font-bold">{MOCK_QUEUE_STATS.avgWaitTime} min</p>
+                <p className="font-bold">{queueStats.avgWaitTime} min</p>
               </div>
               <div className="bg-white/10 rounded-2xl py-2">
                 <p className="text-green-200 text-xs">In Queue</p>
-                {/* PLACEHOLDER: Real count from queue API */}
-                <p className="font-bold">{queue.filter((q) => q.status === "waiting").length}</p>
+                <p className="font-bold">{queueStats.waiting}</p>
               </div>
             </div>
           </div>
@@ -303,16 +301,15 @@ export default function StaffDashboard() {
                 <h3 className="font-bold text-gray-900">Active Queue</h3>
               </div>
               <span className="text-xs text-gray-400">
-                {queue.filter((q) => q.status === "waiting").length} patients waiting
+                {queue.filter(q => q.status === "waiting").length} patients waiting
               </span>
             </div>
 
             <div className="divide-y divide-gray-50 max-h-[600px] overflow-y-auto">
-              {/* PLACEHOLDER: Replace with paginated real-time data from GET /api/staff/queue/active */}
-              {queue
-                .filter((q) => q.status !== "done")
-                .sort((a, b) => (b.urgent ? 1 : 0) - (a.urgent ? 1 : 0))
-                .map((patient, i) => (
+              {queue.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">No patients in queue</div>
+              ) : (
+                queue.map((patient, i) => (
                   <motion.div
                     key={patient.token}
                     initial={{ opacity: 0, x: -10 }}
@@ -322,20 +319,16 @@ export default function StaffDashboard() {
                       patient.urgent ? "border-l-4 border-red-400 bg-red-50/30" : ""
                     }`}
                   >
-                    {/* Token */}
                     <div
                       className={`w-14 text-center py-2 rounded-xl font-black text-sm flex-shrink-0 ${
                         patient.status === "serving"
                           ? "bg-green-500 text-white"
-                          : patient.status === "absent"
-                          ? "bg-red-100 text-red-500"
                           : "bg-gray-100 text-gray-700"
                       }`}
                     >
                       {patient.token}
                     </div>
 
-                    {/* Patient Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-gray-900 text-sm">{patient.name}</p>
@@ -346,70 +339,52 @@ export default function StaffDashboard() {
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-500 truncate">{patient.service} · Age {patient.age}</p>
+                      <p className="text-xs text-gray-500 truncate">{patient.service}</p>
                       <p className="text-xs text-gray-400 italic truncate mt-0.5">"{patient.chiefComplaint}"</p>
                     </div>
 
-                    {/* Wait / Status */}
                     <div className="flex-shrink-0 text-right">
-                      <span className={`inline-block text-xs font-semibold px-2 py-1 rounded-full ${statusStyles[patient.status]}`}>
-                        {patient.status === "serving" ? "Serving" : patient.status === "absent" ? "Absent" : patient.waitTime}
+                      <span className={`inline-block text-xs font-semibold px-2 py-1 rounded-full ${
+                        patient.status === "serving" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                      }`}>
+                        {patient.status === "serving" ? "Serving" : patient.waitTime}
                       </span>
                     </div>
 
-                    {/* Actions Menu */}
-                    <div className="relative flex-shrink-0">
-                      <button
-                        onClick={() => setSelectedPatient(selectedPatient?.token === patient.token ? null : patient)}
-                        className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                      <AnimatePresence>
-                        {selectedPatient?.token === patient.token && (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: -5 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                            className="absolute right-0 top-10 bg-white rounded-2xl shadow-xl border border-gray-100 z-10 w-44 py-2 overflow-hidden"
-                          >
-                            {/* PLACEHOLDER: These trigger API calls to queue management endpoints */}
-                            <button
-                              onClick={() => { handlePriorityOverride(patient.token); setSelectedPatient(null); }}
-                              className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                    {patient.status === "waiting" && (
+                      <div className="relative flex-shrink-0">
+                        <button
+                          onClick={() => setSelectedPatient(selectedPatient?.token === patient.token ? null : patient)}
+                          className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                        <AnimatePresence>
+                          {selectedPatient?.token === patient.token && (
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.95, y: -5 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.95, y: -5 }}
+                              className="absolute right-0 top-10 bg-white rounded-2xl shadow-xl border border-gray-100 z-10 w-44 py-2 overflow-hidden"
                             >
-                              <ArrowUp className="w-3.5 h-3.5" />
-                              Priority Override
-                            </button>
-                            <button
-                              onClick={() => { setSelectedPatient(null); navigate("/staff/records"); }}
-                              className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-                            >
-                              <FileText className="w-3.5 h-3.5" />
-                              View Record
-                            </button>
-                            <button
-                              onClick={() => { handleMarkAbsent(patient.token); setSelectedPatient(null); }}
-                              className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-amber-600 hover:bg-amber-50 transition-colors"
-                            >
-                              <Bell className="w-3.5 h-3.5" />
-                              Mark Absent
-                            </button>
-                            {patient.status === "serving" && (
                               <button
-                                onClick={() => { handleComplete(patient.token); setSelectedPatient(null); }}
-                                className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-green-600 hover:bg-green-50 transition-colors"
+                                onClick={() => {
+                                  navigate(`/staff/records?patient=${patient.name}`);
+                                  setSelectedPatient(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
                               >
-                                <CheckCircle className="w-3.5 h-3.5" />
-                                Complete Visit
+                                <FileText className="w-3.5 h-3.5" />
+                                View Record
                               </button>
-                            )}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
                   </motion.div>
-                ))}
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -439,23 +414,19 @@ export default function StaffDashboard() {
                 <h3 className="font-bold text-gray-900 text-lg">Complete Visit?</h3>
                 <p className="text-gray-500 text-sm mt-1">
                   Mark token <strong>{completingToken}</strong> as completed.
-                  This will update the patient's status in the EMR.
                 </p>
               </div>
-              {/* PLACEHOLDER: Doctor enters diagnosis, treatment, and prescription before completing */}
               <div className="mb-4">
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                  Quick Diagnosis / Notes (optional)
+                  Diagnosis / Notes
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="Enter diagnosis, treatment notes, or referral..."
+                  value={diagnosisNotes}
+                  onChange={(e) => setDiagnosisNotes(e.target.value)}
+                  placeholder="Enter diagnosis, treatment notes..."
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 resize-none"
                 />
-                <p className="text-xs text-gray-400 mt-1">
-                  {/* PLACEHOLDER: Connect to full EMR entry form at /staff/emr/{patientId} */}
-                  Full EMR entry can be done from the Patient Records section.
-                </p>
               </div>
               <div className="flex gap-3">
                 <button
@@ -465,14 +436,10 @@ export default function StaffDashboard() {
                   Cancel
                 </button>
                 <button
-                  onClick={() => {
-                    // PLACEHOLDER: POST /api/staff/queue/{token}/complete with diagnosis notes
-                    setShowCompleteModal(false);
-                    handleCallNext();
-                  }}
+                  onClick={handleCompleteVisit}
                   className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 rounded-2xl shadow-md text-sm"
                 >
-                  Complete & Next
+                  Complete
                 </button>
               </div>
             </motion.div>
