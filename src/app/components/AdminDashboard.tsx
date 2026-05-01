@@ -50,7 +50,7 @@ export default function AdminDashboard() {
   const [queueStarted, setQueueStarted] = useState(true);
   const [dailyCap, setDailyCap] = useState(80);
   const [loading, setLoading] = useState(true);
-  
+
   // State for dynamic data
   const [kpiData, setKpiData] = useState<any[]>([]);
   const [dailyVolume, setDailyVolume] = useState<any[]>([]);
@@ -269,11 +269,10 @@ export default function AdminDashboard() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
-              activeTab === tab.id
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${activeTab === tab.id
                 ? "bg-white text-green-700 shadow-sm"
                 : "text-gray-500 hover:text-gray-700"
-            }`}
+              }`}
           >
             <tab.icon className="w-4 h-4" />
             {tab.label}
@@ -376,9 +375,8 @@ export default function AdminDashboard() {
                     <tr key={staff.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-                            staff.role === "Admin" ? "bg-purple-500" : "bg-green-500"
-                          }`}>
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm ${staff.role === "Admin" ? "bg-purple-500" : "bg-green-500"
+                            }`}>
                             {staff.name.charAt(0)}
                           </div>
                           <div>
@@ -388,9 +386,8 @@ export default function AdminDashboard() {
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                          staff.role === "Admin" ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700"
-                        }`}>
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${staff.role === "Admin" ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700"
+                          }`}>
                           {staff.role}
                         </span>
                       </td>
@@ -503,12 +500,10 @@ export default function AdminDashboard() {
                 { time: "8:05 AM", action: "Daily queue started by Admin Carla Cruz", type: "info" },
                 { time: "8:00 AM", action: "System initialized · MediFlow v1.0.0 started", type: "info" },
               ].map((log, i) => (
-              {systemLogs.map((log, i) => (
                 <div key={i} className="flex items-start gap-3 text-sm py-2 border-b border-gray-50 last:border-0">
                   <span className="text-xs text-gray-400 font-mono w-16 flex-shrink-0">{log.time}</span>
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${
-                    log.type === "success" ? "bg-green-500" : log.type === "warning" ? "bg-amber-500" : "bg-blue-400"
-                  }`} />
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${log.type === "success" ? "bg-green-500" : log.type === "warning" ? "bg-amber-500" : "bg-blue-400"
+                    }`} />
                   <span className="text-gray-600 text-xs leading-relaxed">{log.action}</span>
                 </div>
               ))}
