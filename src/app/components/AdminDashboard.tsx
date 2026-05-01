@@ -494,7 +494,6 @@ export default function AdminDashboard() {
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
             <h3 className="font-bold text-gray-900 mb-4">System Activity Log</h3>
             <div className="space-y-2 max-h-60 overflow-y-auto">
-<<<<<<< HEAD
               {[
                 { time: "10:32 AM", action: "Priority override applied to A-049 by Staff Ana Reyes", type: "warning" },
                 { time: "10:15 AM", action: "Walk-in patient registered: A-063 (Maria Flores)", type: "info" },
@@ -504,9 +503,7 @@ export default function AdminDashboard() {
                 { time: "8:05 AM", action: "Daily queue started by Admin Carla Cruz", type: "info" },
                 { time: "8:00 AM", action: "System initialized · MediFlow v1.0.0 started", type: "info" },
               ].map((log, i) => (
-=======
               {systemLogs.map((log, i) => (
->>>>>>> 1b19392 (Update Admin and Staff Dashboard, StaffLayout, StaffLogin)
                 <div key={i} className="flex items-start gap-3 text-sm py-2 border-b border-gray-50 last:border-0">
                   <span className="text-xs text-gray-400 font-mono w-16 flex-shrink-0">{log.time}</span>
                   <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${

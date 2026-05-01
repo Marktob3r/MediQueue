@@ -176,12 +176,9 @@ export default function StaffLogin() {
         </p>
 
         <p className="text-center text-xs text-gray-600 mt-4">
-<<<<<<< HEAD
           {/* PLACEHOLDER: Replace with actual system version from deployment config */}
           MediFlow v1.0.0 · Unauthorized access is strictly prohibited
-=======
           MediQueue v1.0.0 · Unauthorized access is strictly prohibited
->>>>>>> 1b19392 (Update Admin and Staff Dashboard, StaffLayout, StaffLogin)
         </p>
       </motion.div>
     </div>
