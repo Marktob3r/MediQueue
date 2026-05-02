@@ -220,7 +220,7 @@ export default function PatientLogin() {
                         Signing in...
                       </>
                     ) : (
-                      "Sign In to Patient Portal"
+                      "Sign In"
                     )}
                   </motion.button>
                 </motion.form>

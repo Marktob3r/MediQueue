@@ -192,11 +192,10 @@ export default function PatientLayout() {
                   navigate(item.path);
                   setSidebarOpen(false);
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all group ${
-                  active
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all group ${active
                     ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md"
                     : "text-gray-600 hover:bg-green-50 hover:text-green-700"
-                }`}
+                  }`}
               >
                 <item.icon className={`w-5 h-5 flex-shrink-0 ${active ? "text-white" : "text-gray-400 group-hover:text-green-600"}`} />
                 <span className="text-sm font-semibold">{item.label}</span>
@@ -235,23 +234,7 @@ export default function PatientLayout() {
             </h2>
           </div>
 
-          <div className="flex items-center gap-3 ml-auto">
-            {/* Notification Bell with real count */}
-            <button 
-              onClick={() => navigate("/patient/notifications")}
-              className="relative p-2.5 rounded-2xl bg-gray-50 hover:bg-green-50 text-gray-500 hover:text-green-600 transition-all"
-            >
-              <Bell className="w-5 h-5" />
-              {notifCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                  {notifCount}
-                </span>
-              )}
-            </button>
-            <div className="w-9 h-9 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-              {getUserInitial()}
-            </div>
-          </div>
+
         </header>
 
         {/* Page Content */}

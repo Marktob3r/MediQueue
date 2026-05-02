@@ -40,7 +40,7 @@ export default function PatientDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch active queue entry
       const { data: queueData } = await supabase
         .from("queue_entries")
@@ -156,7 +156,6 @@ export default function PatientDashboard() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
-      {/* Header with Sign Out */}
       <div className="flex justify-between items-center mb-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -167,15 +166,15 @@ export default function PatientDashboard() {
             {getGreeting()}, {user?.first_name}! 👋
           </h1>
           <p className="text-gray-500 mt-1">
-            {new Date().toLocaleDateString("en-PH", { 
-              weekday: "long", 
-              year: "numeric", 
-              month: "long", 
-              day: "numeric" 
+            {new Date().toLocaleDateString("en-PH", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric"
             })}
           </p>
         </motion.div>
-        
+
       </div>
 
       {/* Stats Cards */}
@@ -192,7 +191,7 @@ export default function PatientDashboard() {
           <p className="text-2xl font-extrabold text-gray-900">{stats.totalVisits}</p>
           <p className="text-xs text-gray-500">Total Visits</p>
         </div>
-        
+
         <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
           <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mb-3">
             <Activity className="w-5 h-5 text-blue-600" />
@@ -200,15 +199,7 @@ export default function PatientDashboard() {
           <p className="text-2xl font-extrabold text-gray-900">{activeQueue ? "Active" : "None"}</p>
           <p className="text-xs text-gray-500">Queue Status</p>
         </div>
-        
-        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-          <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center mb-3">
-            <Bell className="w-5 h-5 text-amber-600" />
-          </div>
-          <p className="text-2xl font-extrabold text-gray-900">{notifications.length}</p>
-          <p className="text-xs text-gray-500">Notifications</p>
-        </div>
-        
+
         <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
           <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center mb-3">
             <Calendar className="w-5 h-5 text-purple-600" />
@@ -354,54 +345,7 @@ export default function PatientDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <Bell className="w-5 h-5 text-green-600" />
-                <h3 className="font-bold text-gray-900">Notifications</h3>
-              </div>
-              {notifications.filter(n => !n.read).length > 0 && (
-                <span className="text-xs font-bold text-white bg-red-500 w-5 h-5 rounded-full flex items-center justify-center">
-                  {notifications.filter(n => !n.read).length}
-                </span>
-              )}
-            </div>
-            <div className="divide-y divide-gray-50 max-h-[400px] overflow-y-auto">
-              {notifications.length > 0 ? (
-                notifications.map((notif) => (
-                  <div key={notif.id} className="p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex gap-3">
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                        notif.type === 'queue' ? 'bg-green-100 text-green-600' :
-                        notif.type === 'reminder' ? 'bg-yellow-100 text-yellow-600' :
-                        'bg-blue-100 text-blue-600'
-                      }`}>
-                        {notif.type === 'queue' ? <Bell className="w-4 h-4" /> :
-                         notif.type === 'reminder' ? <AlertCircle className="w-4 h-4" /> :
-                         <CheckCircle className="w-4 h-4" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900">{notif.title}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{notif.message}</p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {new Date(notif.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      {!notif.read && (
-                        <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0" />
-                      )}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="p-8 text-center">
-                  <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">No notifications</p>
-                  <p className="text-xs text-gray-400 mt-1">You're all caught up!</p>
-                </div>
-              )}
-            </div>
-          </div>
+
 
           {/* Health Tip */}
           <div className="mt-4 bg-gradient-to-br from-emerald-50 to-green-50 rounded-3xl p-5 border border-green-100">

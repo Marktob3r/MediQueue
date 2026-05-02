@@ -74,23 +74,23 @@ export default function JoinQueue() {
       setError("Please login to join the queue");
       return;
     }
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const selectedServiceObj = SERVICES.find(s => s.id === selectedService);
-      
+
       if (!selectedServiceObj) {
         throw new Error("Please select a service");
       }
-      
+
       if (!form.chiefComplaint) {
         throw new Error("Please fill in the chief complaint");
       }
-      
+
       console.log("Creating queue entry for user:", user.id);
-      
+
       // Create queue entry - let the database trigger generate token and queue_number
       const { data, error } = await supabase
         .from("queue_entries")
@@ -128,14 +128,14 @@ export default function JoinQueue() {
         service: selectedServiceObj.label,
         position: data.position,
         estimatedWait: (aheadCount || 0) * 8 + 15,
-        date: new Date().toLocaleDateString("en-PH", { 
-          weekday: "long", 
-          year: "numeric", 
-          month: "long", 
-          day: "numeric" 
+        date: new Date().toLocaleDateString("en-PH", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric"
         }),
       });
-      
+
       setStep(3);
     } catch (err: any) {
       console.error("Error generating token:", err);
@@ -190,9 +190,8 @@ export default function JoinQueue() {
               >
                 {step > s.n ? <CheckCircle className="w-4 h-4" /> : s.n}
               </motion.div>
-              <span className={`text-xs font-semibold hidden sm:block ${
-                step === s.n ? "text-green-700" : step > s.n ? "text-green-500" : "text-gray-400"
-              }`}>
+              <span className={`text-xs font-semibold hidden sm:block ${step === s.n ? "text-green-700" : step > s.n ? "text-green-500" : "text-gray-400"
+                }`}>
                 {s.label}
               </span>
             </div>
@@ -225,16 +224,14 @@ export default function JoinQueue() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setSelectedService(service.id)}
-                    className={`p-4 rounded-2xl border-2 text-left transition-all ${
-                      selectedService === service.id
+                    className={`p-4 rounded-2xl border-2 text-left transition-all ${selectedService === service.id
                         ? "border-green-500 bg-green-50 shadow-md"
                         : "border-gray-100 hover:border-green-200 hover:bg-green-50/30"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 ${
-                        selectedService === service.id ? "bg-green-500 text-white" : "bg-green-50 text-green-600"
-                      }`}>
+                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 ${selectedService === service.id ? "bg-green-500 text-white" : "bg-green-50 text-green-600"
+                        }`}>
                         <service.icon className="w-5 h-5" />
                       </div>
                       <div className="flex-1">
@@ -321,11 +318,10 @@ export default function JoinQueue() {
                         key={s}
                         type="button"
                         onClick={() => toggleSymptom(s)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                          symptoms.includes(s)
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${symptoms.includes(s)
                             ? "bg-green-500 text-white border-green-500"
                             : "bg-white text-gray-600 border-gray-200 hover:border-green-300 hover:text-green-600"
-                        }`}
+                          }`}
                       >
                         {symptoms.includes(s) && <CheckCircle className="w-3 h-3 inline mr-1" />}
                         {s}

@@ -18,9 +18,8 @@ import StaffDashboard from "./components/StaffDashboard";
 import WalkInRegistration from "./components/WalkInRegistration";
 import AdminDashboard from "./components/AdminDashboard";
 
-// PLACEHOLDER: Add route guards (PrivateRoute components) to protect
-// /patient/*, /staff/*, /admin/* routes using JWT token validation
-// Replace direct component renders with <PrivateRoute role="patient"> wrappers
+// Route Guards
+import PrivateRoute from "./components/PrivateRoute";
 
 export const router = createBrowserRouter([
   // Public Routes
@@ -44,7 +43,11 @@ export const router = createBrowserRouter([
   // Patient Portal (Protected)
   {
     path: "/patient",
-    element: <PatientLayout />,
+    element: (
+      <PrivateRoute allowedRoles={["patient", "admin"]}>
+        <PatientLayout />
+      </PrivateRoute>
+    ),
     children: [
       {
         index: true,
@@ -76,7 +79,11 @@ export const router = createBrowserRouter([
   // Staff Portal (Protected)
   {
     path: "/staff",
-    element: <StaffLayout />,
+    element: (
+      <PrivateRoute allowedRoles={["staff", "admin"]}>
+        <StaffLayout />
+      </PrivateRoute>
+    ),
     children: [
       {
         index: true,
@@ -111,7 +118,11 @@ export const router = createBrowserRouter([
   // Admin Portal (Protected — Admin role required)
   {
     path: "/admin",
-    element: <StaffLayout />,
+    element: (
+      <PrivateRoute allowedRoles={["admin"]}>
+        <StaffLayout />
+      </PrivateRoute>
+    ),
     children: [
       {
         index: true,

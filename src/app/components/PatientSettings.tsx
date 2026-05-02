@@ -282,9 +282,8 @@ export default function PatientSettings() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
-              activeTab === tab.id ? "bg-white text-green-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
-            }`}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${activeTab === tab.id ? "bg-white text-green-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
+              }`}
           >
             <tab.icon className="w-4 h-4" />
             {tab.label}
@@ -331,18 +330,6 @@ export default function PatientSettings() {
                 <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Phone Number</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    value={profile.phone || ""}
-                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                    placeholder="+63 XXX XXX XXXX"
-                    className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-                  />
-                </div>
-              </div>
-              <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Date of Birth</label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -355,16 +342,15 @@ export default function PatientSettings() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Gender</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Sex</label>
                 <select
-                  value={profile.gender || ""}
-                  onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
+                  value={profile.sex || ""}
+                  onChange={(e) => setProfile({ ...profile, sex: e.target.value })}
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
                 >
-                  <option value="">Select Gender</option>
+                  <option value="">Select Sex</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
-                  <option value="Other">Other</option>
                 </select>
               </div>
               <div>
