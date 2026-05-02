@@ -20,6 +20,7 @@ export interface AuthContextType {
   userRole: UserRole | null;
   signUp: (email: string, password: string, userData: any) => Promise<{ needsEmailConfirmation: boolean }>;
   verifyOtp: (email: string, token: string) => Promise<void>;
+  resendOtp: (email: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -147,7 +148,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // onAuthStateChange will catch the session and fetch the profile
     } catch (error) {
-      console.error("OTP Verification error:", error);
+      console.error("Verify OTP error:", error);
+      throw error;
+    }
+  };
+
+  const resendOtp = async (email: string) => {
+    try {
+      console.log("Resending OTP...");
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+
+      if (error) throw error;
+      console.log("OTP resent successfully.");
+    } catch (error) {
+      console.error("Resend OTP error:", error);
       throw error;
     }
   };
@@ -186,6 +203,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     userRole,
     signUp,
     verifyOtp,
+    resendOtp,
     signIn,
     signOut,
   };

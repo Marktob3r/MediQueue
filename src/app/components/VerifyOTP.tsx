@@ -1,16 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { motion } from "motion/react";
-import { Activity, Mail, ArrowLeft, AlertCircle } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { Activity, Mail, ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
 export default function VerifyOTP() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { verifyOtp } = useAuth();
+  const { verifyOtp, resendOtp } = useAuth();
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(60);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
 
   // Email is passed via React Router state from the signup page
   const email = location.state?.email || "";
@@ -32,7 +42,7 @@ export default function VerifyOTP() {
       }
 
       await verifyOtp(email, token);
-      
+
       // On success, AuthContext handles the session and we just navigate to dashboard
       navigate("/patient/dashboard");
     } catch (err: any) {
@@ -40,6 +50,22 @@ export default function VerifyOTP() {
       console.error("Verification error:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (cooldown > 0) return;
+    setError(null);
+    setMessage(null);
+    setResending(true);
+    try {
+      await resendOtp(email);
+      setMessage("A new verification code has been sent to your email.");
+      setCooldown(60); // Reset cooldown for 60 seconds
+    } catch (err: any) {
+      setError(err.message || "Failed to resend code. Please try again.");
+    } finally {
+      setResending(false);
     }
   };
 
@@ -67,23 +93,38 @@ export default function VerifyOTP() {
           </div>
           <h1 className="text-2xl font-extrabold text-gray-900">Verify Your Email</h1>
           <p className="text-gray-500 text-sm mt-2 leading-relaxed px-4">
-            We've sent a 6-digit verification code to <br/>
+            We've sent a 6-digit verification code to <br />
             <span className="font-semibold text-gray-800">{email}</span>
           </p>
         </div>
 
         {/* Card */}
         <div className="bg-white rounded-3xl shadow-xl border border-green-100 p-6 sm:p-8">
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-red-50 border-b border-red-200 p-4 rounded-xl flex items-start gap-3 mb-6"
-            >
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700">{error}</p>
-            </motion.div>
-          )}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-3 mb-6"
+              >
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-700">{error}</p>
+              </motion.div>
+            )}
+            
+            {message && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="bg-green-50 border border-green-200 p-4 rounded-xl flex items-start gap-3 mb-6"
+              >
+                <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-green-700">{message}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <form onSubmit={handleVerify} className="space-y-6">
             <div>
@@ -94,15 +135,15 @@ export default function VerifyOTP() {
                 <input
                   type="text"
                   required
-                  maxLength={8}
+                  maxLength={6}
                   value={token}
                   onChange={(e) => {
                     // Only allow numbers
                     const val = e.target.value.replace(/\D/g, '');
                     setToken(val);
                   }}
-                  placeholder="00000000"
-                  className="w-56 text-center text-3xl tracking-widest px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent transition-all font-mono"
+                  placeholder="000000"
+                  className="w-48 text-center text-3xl tracking-widest px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent transition-all font-mono"
                 />
               </div>
             </div>
@@ -127,13 +168,16 @@ export default function VerifyOTP() {
           <p className="text-center text-sm text-gray-500 mt-6">
             Didn't receive the email?{" "}
             <button
-              onClick={() => {
-                // Future enhancement: resend OTP
-                alert("Please check your spam folder or try registering again.");
-              }}
-              className="text-green-600 font-semibold hover:text-green-700"
+              type="button"
+              onClick={handleResend}
+              disabled={cooldown > 0 || resending}
+              className={`font-semibold transition-colors ${
+                cooldown > 0 || resending
+                  ? "text-gray-400 cursor-not-allowed"
+                  : "text-green-600 hover:text-green-700"
+              }`}
             >
-              Check Spam
+              {resending ? "Sending..." : cooldown > 0 ? `Resend Code in ${cooldown}s` : "Resend Code"}
             </button>
           </p>
         </div>
