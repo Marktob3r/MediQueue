@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
+import { supabase } from "../../config/supabase";
 import {
   Clock,
   Users,
@@ -57,6 +58,42 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Handle Supabase auth redirects that land back on this page (e.g. expired magic links)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) return;
+
+    const params = new URLSearchParams(hash.replace("#", ""));
+    const error = params.get("error");
+    const errorCode = params.get("error_code");
+    const errorDescription = params.get("error_description");
+
+    if (error) {
+      // Clear the hash from the URL so it looks clean
+      window.history.replaceState(null, "", window.location.pathname);
+
+      if (errorCode === "otp_expired") {
+        setAuthError(
+          "Your verification link has expired. Please register again and use the 6-digit code sent to your email."
+        );
+      } else {
+        setAuthError(
+          errorDescription?.replace(/\+/g, " ") ||
+            "An authentication error occurred. Please try again."
+        );
+      }
+      return;
+    }
+
+    // Handle a valid access_token in the hash (magic link click — fallback)
+    const accessToken = params.get("access_token");
+    if (accessToken) {
+      // Supabase will pick this up via onAuthStateChange — redirect to patient dashboard
+      navigate("/patient/dashboard");
+    }
+  }, [navigate]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -66,6 +103,40 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white font-['Montserrat']">
+      {/* Auth error toast (e.g. expired verification link) */}
+      <AnimatePresence>
+        {authError && (
+          <motion.div
+            initial={{ opacity: 0, y: -60 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -60 }}
+            transition={{ duration: 0.4 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] max-w-md w-full mx-4"
+          >
+            <div className="bg-red-50 border border-red-200 rounded-2xl px-5 py-4 shadow-xl flex items-start gap-3">
+              <div className="w-8 h-8 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-red-600 text-sm font-bold">!</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-red-800 mb-0.5">Verification Failed</p>
+                <p className="text-xs text-red-600 leading-relaxed">{authError}</p>
+                <button
+                  onClick={() => navigate("/patient/login")}
+                  className="mt-2 text-xs font-bold text-red-700 hover:text-red-800 underline"
+                >
+                  Go back to Register →
+                </button>
+              </div>
+              <button
+                onClick={() => setAuthError(null)}
+                className="text-red-400 hover:text-red-600 transition-colors flex-shrink-0"
+              >
+                ✕
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* ── NAV ── */}
       <motion.nav
         initial={{ y: -80, opacity: 0 }}

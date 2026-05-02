@@ -21,6 +21,8 @@ export default function StaffLogin() {
         navigate("/admin/dashboard");
       } else if (userRole === "staff") {
         navigate("/staff/dashboard");
+      } else if (userRole === "patient") {
+        setError("This account is registered as a patient. Please use the Patient Portal.");
       }
     }
   }, [isAuthenticated, userRole, navigate]);
@@ -36,26 +38,15 @@ export default function StaffLogin() {
       }
 
       await signIn(form.email, form.password);
-
-      // Wait a moment for role to be updated
-      setTimeout(() => {
-        if (userRole === "admin") {
-          navigate("/admin/dashboard");
-        } else if (userRole === "staff") {
-          navigate("/staff/dashboard");
-        } else if (userRole === "patient") {
-          setError("This account is registered as a patient. Please use the Patient Portal.");
-        } else {
-          setError("Invalid staff credentials. Please contact administrator.");
-        }
-      }, 1000);
+      // Navigation and role checking is now handled by the useEffect above
       
     } catch (err: any) {
       setError(err.message || "Authentication failed. Please check your credentials.");
       console.error("Staff login error:", err);
-    } finally {
       setLoading(false);
     }
+    // Note: We don't set loading to false in a finally block here because if successful, 
+    // we want the button to stay in the loading state until the redirect happens.
   };
 
   return (

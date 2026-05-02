@@ -32,7 +32,7 @@ export default function PatientLogin() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    
+
     try {
       if (!loginForm.email || !loginForm.password) {
         throw new Error("Please fill in all fields");
@@ -70,15 +70,20 @@ export default function PatientLogin() {
         throw new Error("You must agree to the terms and conditions");
       }
 
-      await signUp(regForm.email, regForm.password, {
+      const { needsEmailConfirmation } = await signUp(regForm.email, regForm.password, {
         first_name: regForm.first_name,
         last_name: regForm.last_name,
         phone: regForm.phone,
       });
 
-      // Navigate directly to dashboard after successful registration
-      navigate("/patient/dashboard");
-      
+      // Route based on whether Supabase has email confirmation enabled
+      if (needsEmailConfirmation) {
+        navigate("/patient/verify", { state: { email: regForm.email } });
+      } else {
+        // Email confirmation is disabled in Supabase — go straight to dashboard
+        navigate("/patient/dashboard");
+      }
+
     } catch (err: any) {
       setError(err.message || "Registration failed. Please try again.");
       console.error("Registration error:", err);
@@ -136,11 +141,10 @@ export default function PatientLogin() {
                   setTab(t);
                   setError(null);
                 }}
-                className={`flex-1 py-4 text-sm font-semibold transition-all ${
-                  tab === t
-                    ? "text-green-700 border-b-2 border-green-500 bg-green-50/50"
-                    : "text-gray-400 hover:text-gray-600"
-                }`}
+                className={`flex-1 py-4 text-sm font-semibold transition-all ${tab === t
+                  ? "text-green-700 border-b-2 border-green-500 bg-green-50/50"
+                  : "text-gray-400 hover:text-gray-600"
+                  }`}
               >
                 {t === "login" ? "Sign In" : "Create Account"}
               </button>
@@ -277,22 +281,6 @@ export default function PatientLogin() {
                         value={regForm.email}
                         onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
                         placeholder="juan@email.com"
-                        className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                      Phone (Optional)
-                    </label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="tel"
-                        value={regForm.phone}
-                        onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
-                        placeholder="+63 XXX XXXX XXX"
                         className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
                       />
                     </div>

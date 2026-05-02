@@ -7,6 +7,7 @@ import StaffLayout from "./components/StaffLayout";
 // Pages
 import LandingPage from "./components/LandingPage";
 import PatientLogin from "./components/PatientLogin";
+import VerifyOTP from "./components/VerifyOTP";
 import PatientDashboard from "./components/PatientDashboard";
 import JoinQueue from "./components/JoinQueue";
 import LiveQueueMonitor from "./components/LiveQueueMonitor";
@@ -30,6 +31,10 @@ export const router = createBrowserRouter([
   {
     path: "/patient/login",
     element: <PatientLogin />,
+  },
+  {
+    path: "/patient/verify",
+    element: <VerifyOTP />,
   },
   {
     path: "/staff/login",

@@ -1,19 +1,15 @@
 import React, { createContext, ReactNode, useEffect, useState } from "react";
 import { supabase } from "../config/supabase";
-import bcrypt from "bcryptjs";
 
 export type UserRole = "patient" | "staff" | "admin";
 
 export interface AuthUser {
   id: string;
-  patient_id: string;
-  first_name: string;
-  last_name: string;
   email: string;
-  phone: string | null;
+  first_name?: string;
+  last_name?: string;
+  phone?: string | null;
   role: UserRole;
-  created_at: string;
-  last_login: string | null;
   is_active: boolean;
 }
 
@@ -22,137 +18,152 @@ export interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
   userRole: UserRole | null;
-  signUp: (email: string, password: string, userData: any) => Promise<void>;
+  signUp: (email: string, password: string, userData: any) => Promise<{ needsEmailConfirmation: boolean }>;
+  verifyOtp: (email: string, token: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  updateUserRole: (role: UserRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
 
-  // Check for existing session on mount
+  // Helper to fetch full user profile and role from the database
+  const fetchUserProfile = async (userId: string, email: string) => {
+    try {
+      // Fetch Profile
+      const { data: profileData, error: profileError } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+
+      // Fetch Role
+      const { data: roleData, error: roleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .single();
+
+      if (profileError || roleError) {
+        console.error("Error fetching user data:", profileError || roleError);
+      }
+
+      const role: UserRole = roleData?.role || "patient";
+
+      const authUser: AuthUser = {
+        id: userId,
+        email: email,
+        first_name: profileData?.first_name,
+        last_name: profileData?.last_name,
+        phone: profileData?.phone,
+        role: role,
+        is_active: true,
+      };
+
+      setUser(authUser);
+      setUserRole(role);
+    } catch (err) {
+      console.error("Failed to assemble user profile", err);
+    }
+  };
+
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const storedUser = localStorage.getItem('patient_user');
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          setUserRole(parsedUser.role);
-        }
-      } catch (error) {
-        console.error("Session check error:", error);
-      } finally {
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchUserProfile(session.user.id, session.user.email!);
+      } else {
         setLoading(false);
       }
-    };
+    });
 
-    checkSession();
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        fetchUserProfile(session.user.id, session.user.email!);
+      } else {
+        setUser(null);
+        setUserRole(null);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, userData: any) => {
+  // Set loading to false once user is fetched
+  useEffect(() => {
+    if (user || userRole === null) {
+      setLoading(false);
+    }
+  }, [user, userRole]);
+
+  const signUp = async (email: string, password: string, userData: any): Promise<{ needsEmailConfirmation: boolean }> => {
     try {
-      console.log("Starting signup...");
+      console.log("Starting Supabase auth signup...");
       
-      // Hash the password
-      const salt = await bcrypt.genSalt(10);
-      const password_hash = await bcrypt.hash(password, salt);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: userData.first_name,
+            last_name: userData.last_name,
+            phone: userData.phone || null,
+            role: "patient",
+          },
+        },
+      });
 
-      // Check if user already exists
-      const { data: existingUser, error: checkError } = await supabase
-        .from("patients")
-        .select("email")
-        .eq("email", email)
-        .single();
+      if (error) throw error;
 
-      if (existingUser) {
-        throw new Error("User with this email already exists");
-      }
-
-      // Insert new patient
-      const { data, error } = await supabase
-        .from("patients")
-        .insert({
-          email: email,
-          password_hash: password_hash,
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-          phone: userData.phone || null,
-          role: "patient",
-          created_at: new Date().toISOString(),
-          is_active: true,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Insert error:", error);
-        throw new Error(error.message);
-      }
-
-      if (data) {
-        // Remove password_hash from user object
-        const { password_hash: _, ...patientUser } = data;
-        setUser(patientUser as AuthUser);
-        setUserRole("patient");
-        localStorage.setItem('patient_user', JSON.stringify(patientUser));
-        console.log("Signup successful");
-      }
+      // If Supabase returns a session immediately, email confirmation is disabled
+      // If no session, it means email confirmation is required
+      const needsEmailConfirmation = !data.session;
+      console.log(needsEmailConfirmation ? "Signup: email confirmation required." : "Signup: logged in directly (no email confirmation).");
+      return { needsEmailConfirmation };
     } catch (error) {
       console.error("Sign up error:", error);
       throw error;
     }
   };
 
+  const verifyOtp = async (email: string, token: string) => {
+    try {
+      console.log("Verifying OTP...");
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'signup'
+      });
+
+      if (error) throw error;
+      
+      // onAuthStateChange will catch the session and fetch the profile
+    } catch (error) {
+      console.error("OTP Verification error:", error);
+      throw error;
+    }
+  };
+
   const signIn = async (email: string, password: string) => {
     try {
-      console.log("Signing in...");
+      console.log("Signing in with Supabase...");
       
-      // Get user by email
-      const { data, error } = await supabase
-        .from("patients")
-        .select("*")
-        .eq("email", email)
-        .single();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      if (error) {
-        console.error("Fetch error:", error);
-        throw new Error("Invalid email or password");
-      }
-      
-      if (!data) {
-        throw new Error("Invalid email or password");
-      }
-      
-      if (!data.is_active) {
-        throw new Error("Account is deactivated");
-      }
+      if (error) throw error;
 
-      // Verify password
-      const isValidPassword = await bcrypt.compare(password, data.password_hash);
-      if (!isValidPassword) {
-        throw new Error("Invalid email or password");
-      }
-
-      // Update last login
-      await supabase
-        .from("patients")
-        .update({ last_login: new Date().toISOString() })
-        .eq("id", data.id);
-
-      // Remove password_hash from user object
-      const { password_hash: _, ...patientUser } = data;
-      setUser(patientUser as AuthUser);
-      setUserRole(patientUser.role);
-      localStorage.setItem('patient_user', JSON.stringify(patientUser));
-      console.log("Sign in successful");
+      // onAuthStateChange will handle fetching profile
     } catch (error) {
       console.error("Sign in error:", error);
       throw error;
@@ -160,18 +171,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const signOut = async () => {
-    setUser(null);
-    setUserRole(null);
-    localStorage.removeItem('patient_user');
-    console.log("Sign out successful");
-  };
-
-  const updateUserRole = (role: UserRole) => {
-    setUserRole(role);
-    if (user) {
-      const updatedUser = { ...user, role };
-      setUser(updatedUser);
-      localStorage.setItem('patient_user', JSON.stringify(updatedUser));
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (error) {
+      console.error("Sign out error:", error);
     }
   };
 
@@ -181,9 +185,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     isAuthenticated: !!user,
     userRole,
     signUp,
+    verifyOtp,
     signIn,
     signOut,
-    updateUserRole,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
