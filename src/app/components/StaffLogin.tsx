@@ -147,10 +147,10 @@ export default function StaffLogin() {
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Authenticating...
+                  <span className="pointer-events-none">Authenticating...</span>
                 </>
               ) : (
-                "Sign In"
+                <span className="pointer-events-none">Sign In</span>
               )}
             </motion.button>
           </form>

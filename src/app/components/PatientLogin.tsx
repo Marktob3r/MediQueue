@@ -217,10 +217,10 @@ export default function PatientLogin() {
                     {loading ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Signing in...
+                        <span className="pointer-events-none">Signing in...</span>
                       </>
                     ) : (
-                      "Sign In"
+                      <span className="pointer-events-none">Sign In</span>
                     )}
                   </motion.button>
                 </motion.form>
@@ -362,10 +362,10 @@ export default function PatientLogin() {
                     {loading ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Creating Account...
+                        <span className="pointer-events-none">Creating Account...</span>
                       </>
                     ) : (
-                      "Create Patient Account"
+                      <span className="pointer-events-none">Create Patient Account</span>
                     )}
                   </motion.button>
                 </motion.form>
