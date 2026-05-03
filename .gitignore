@@ -13,6 +13,10 @@ dist-ssr
 *.local
 .env
 
+# Admin scripts (contain sensitive service_role key — never commit these)
+create-admin.js
+*.admin.js
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

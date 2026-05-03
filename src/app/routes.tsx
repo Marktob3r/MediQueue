@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate } from "react-router";
 // Layouts
 import PatientLayout from "./components/PatientLayout";
 import StaffLayout from "./components/StaffLayout";
+import AdminLayout from "./components/AdminLayout";
 
 // Pages
 import LandingPage from "./components/LandingPage";
@@ -120,7 +121,7 @@ export const router = createBrowserRouter([
     path: "/admin",
     element: (
       <PrivateRoute allowedRoles={["admin"]}>
-        <StaffLayout />
+        <AdminLayout />
       </PrivateRoute>
     ),
     children: [
@@ -138,6 +139,10 @@ export const router = createBrowserRouter([
       },
       {
         path: "queue-controls",
+        element: <AdminDashboard />,
+      },
+      {
+        path: "settings",
         element: <AdminDashboard />,
       },
     ],

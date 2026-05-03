@@ -17,11 +17,11 @@ import {
   X,
 } from "lucide-react";
 
-// PLACEHOLDER: Replace with actual clinic logo/branding asset
-const CLINIC_NAME = "Samuel P. Dizon Medical Clinic";
-const CLINIC_ADDRESS = "2/F RM Centrepoint Bldg. Magsaysay Drive cor. Rizal Ave. East Tapinac, Olongapo, Philippines, 2200";
-const CLINIC_PHONE = "0950 331 3347";
-const CLINIC_EMAIL = "thebuj29@yahoo.com.ph";
+// Default contact info — overridden by values fetched from queue_settings
+const DEFAULT_CLINIC_NAME = "Samuel P. Dizon Medical Clinic";
+const DEFAULT_CLINIC_ADDRESS = "2/F RM Centrepoint Bldg. Magsaysay Drive cor. Rizal Ave. East Tapinac, Olongapo, Philippines, 2200";
+const DEFAULT_CLINIC_PHONE = "0950 331 3347";
+const DEFAULT_CLINIC_EMAIL = "thebuj29@yahoo.com.ph";
 
 const features = [
   {
@@ -59,6 +59,31 @@ export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [clinicInfo, setClinicInfo] = useState({
+    name: DEFAULT_CLINIC_NAME,
+    address: DEFAULT_CLINIC_ADDRESS,
+    phone: DEFAULT_CLINIC_PHONE,
+    email: DEFAULT_CLINIC_EMAIL,
+  });
+
+  // Fetch live clinic contact info from admin settings
+  useEffect(() => {
+    supabase
+      .from("queue_settings")
+      .select("clinic_name, clinic_phone, clinic_email, clinic_address")
+      .limit(1)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setClinicInfo({
+            name: data.clinic_name || DEFAULT_CLINIC_NAME,
+            address: data.clinic_address || DEFAULT_CLINIC_ADDRESS,
+            phone: data.clinic_phone || DEFAULT_CLINIC_PHONE,
+            email: data.clinic_email || DEFAULT_CLINIC_EMAIL,
+          });
+        }
+      });
+  }, []);
 
   // Handle Supabase auth redirects that land back on this page (e.g. expired magic links)
   useEffect(() => {
@@ -287,7 +312,7 @@ export default function LandingPage() {
 
               <p className="text-gray-600 text-lg leading-relaxed mb-4">
                 {/* PLACEHOLDER: Customize intro text for the clinic */}
-                Welcome to <strong>{CLINIC_NAME}</strong>'s digital queueing
+                Welcome to <strong>{clinicInfo.name}</strong>'s digital queueing
                 system. Join the queue remotely, track your position in
                 real-time, and get notified when it's your turn.
               </p>
@@ -550,7 +575,7 @@ export default function LandingPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-gray-900 mb-1">Address</h4>
-                    <p className="text-gray-600 text-sm leading-relaxed">{CLINIC_ADDRESS}</p>
+                    <p className="text-gray-600 text-sm leading-relaxed">{clinicInfo.address}</p>
                   </div>
                 </div>
               </div>
@@ -562,8 +587,8 @@ export default function LandingPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-gray-900 mb-1">Phone</h4>
-                    <a href={`tel:${CLINIC_PHONE}`} className="text-emerald-600 font-semibold text-sm hover:text-emerald-700 transition-colors">
-                      {CLINIC_PHONE}
+                    <a href={`tel:${clinicInfo.phone}`} className="text-emerald-600 font-semibold text-sm hover:text-emerald-700 transition-colors">
+                      {clinicInfo.phone}
                     </a>
                   </div>
                 </div>
@@ -576,8 +601,8 @@ export default function LandingPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-gray-900 mb-1">Email</h4>
-                    <a href={`mailto:${CLINIC_EMAIL}`} className="text-teal-600 font-semibold text-sm hover:text-teal-700 transition-colors break-all">
-                      {CLINIC_EMAIL}
+                    <a href={`mailto:${clinicInfo.email}`} className="text-teal-600 font-semibold text-sm hover:text-teal-700 transition-colors break-all">
+                      {clinicInfo.email}
                     </a>
                   </div>
                 </div>
@@ -655,7 +680,7 @@ export default function LandingPage() {
               <p className="text-gray-400 text-sm leading-relaxed">
                 {/* PLACEHOLDER: Update with official clinic description */}
                 A cloud-based queueing solution with A.I. analysis, built for{" "}
-                <span className="text-green-400">{CLINIC_NAME}</span>.
+                <span className="text-green-400">{clinicInfo.name}</span>.
               </p>
             </div>
 
@@ -666,15 +691,15 @@ export default function LandingPage() {
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
                   <MapPin className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-400 text-sm">{CLINIC_ADDRESS}</span>
+                  <span className="text-gray-400 text-sm">{clinicInfo.address}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Phone className="w-4 h-4 text-green-400 flex-shrink-0" />
-                  <span className="text-gray-400 text-sm">{CLINIC_PHONE}</span>
+                  <span className="text-gray-400 text-sm">{clinicInfo.phone}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Mail className="w-4 h-4 text-green-400 flex-shrink-0" />
-                  <span className="text-gray-400 text-sm">{CLINIC_EMAIL}</span>
+                  <span className="text-gray-400 text-sm">{clinicInfo.email}</span>
                 </div>
               </div>
             </div>
@@ -699,7 +724,7 @@ export default function LandingPage() {
 
           <div className="border-t border-gray-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-gray-500 text-sm">
-              © {new Date().getFullYear()} MediFlow — {CLINIC_NAME}. All rights reserved.
+              © {new Date().getFullYear()} MediFlow — {clinicInfo.name}. All rights reserved.
             </p>
             <p className="text-gray-600 text-xs">
               {/* PLACEHOLDER: Update version with actual release version */}

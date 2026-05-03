@@ -3,22 +3,20 @@ import { Outlet, useNavigate, useLocation } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Activity,
-  LayoutDashboard,
-  Users,
-  Settings,
   LogOut,
   Bell,
   Menu,
   X,
   ChevronRight,
-  ListOrdered,
-  UserPlus,
-  FileText,
+  BarChart3,
+  Shield,
+  Sliders,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../config/supabase";
 
-export default function StaffLayout() {
+export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, userRole, signOut, isAuthenticated } = useAuth();
@@ -35,13 +33,13 @@ export default function StaffLayout() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Redirect if not authenticated or not staff
+  // Redirect if not authenticated or not admin
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/staff/login");
-    } else if (userRole !== "staff") {
-      if (userRole === "admin") {
-        navigate("/admin/dashboard");
+    } else if (userRole !== "admin") {
+      if (userRole === "staff") {
+        navigate("/staff/dashboard");
       } else {
         navigate("/patient/dashboard");
       }
@@ -80,15 +78,14 @@ export default function StaffLayout() {
     navigate("/staff/login");
   };
 
-  const staffNavItems = [
-    { path: "/staff/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { path: "/staff/queue", icon: ListOrdered, label: "Manage Live Queue" },
-    { path: "/staff/walkin", icon: UserPlus, label: "Walk-in Registration" },
-    { path: "/staff/records", icon: FileText, label: "Patient Records" },
-    { path: "/staff/settings", icon: Settings, label: "Settings" },
+  const adminNavItems = [
+    { path: "/admin/dashboard", icon: BarChart3, label: "Analytics & Reports" },
+    { path: "/admin/accounts", icon: Shield, label: "Account Management" },
+    { path: "/admin/queue-controls", icon: Sliders, label: "Daily Queue Controls" },
+    { path: "/admin/settings", icon: Settings, label: "Settings" },
   ];
 
-  const NavItem = ({ item }: { item: typeof staffNavItems[0] }) => {
+  const NavItem = ({ item }: { item: typeof adminNavItems[0] }) => {
     const active = location.pathname === item.path;
     return (
       <button
@@ -114,10 +111,10 @@ export default function StaffLayout() {
     if (user?.first_name) {
       return user.first_name.charAt(0).toUpperCase();
     }
-    return "S";
+    return "A";
   };
 
-  if (!isAuthenticated || userRole !== "staff") return null;
+  if (!isAuthenticated || userRole !== "admin") return null;
 
   return (
     <div className="h-screen bg-gray-50 flex">
@@ -150,9 +147,7 @@ export default function StaffLayout() {
               </div>
               <div>
                 <p className="font-extrabold text-green-700 text-lg leading-none">MediFlow</p>
-                <p className="text-xs text-gray-400 leading-none mt-0.5">
-                  Staff Portal
-                </p>
+                <p className="text-xs text-gray-400 leading-none mt-0.5">Admin Portal</p>
               </div>
             </div>
             <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-1.5 rounded-xl hover:bg-gray-100 text-gray-400">
@@ -161,7 +156,7 @@ export default function StaffLayout() {
           </div>
         </div>
 
-        {/* Staff Info - DYNAMIC */}
+        {/* Admin Info */}
         <div className="px-4 py-4 border-b border-gray-100">
           <div className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-2xl p-4">
             <div className="flex items-center gap-3">
@@ -174,9 +169,9 @@ export default function StaffLayout() {
                 </p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                    Staff
+                    Admin
                   </span>
-                  <span className="text-xs text-gray-400">Front Desk</span>
+                  <span className="text-xs text-gray-400">Management</span>
                 </div>
               </div>
             </div>
@@ -185,7 +180,7 @@ export default function StaffLayout() {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {staffNavItems.map((item) => <NavItem key={item.path} item={item} />)}
+          {adminNavItems.map((item) => <NavItem key={item.path} item={item} />)}
         </nav>
 
         {/* Logout */}
@@ -213,10 +208,9 @@ export default function StaffLayout() {
 
           <div className="hidden lg:block">
             <h2 className="font-bold text-gray-900">
-              {staffNavItems.find((n) => n.path === location.pathname)?.label || "Staff Portal"}
+              {adminNavItems.find((n) => n.path === location.pathname)?.label || "Admin Portal"}
             </h2>
           </div>
-
         </header>
 
         {/* Page Content */}

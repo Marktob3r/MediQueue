@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { motion } from "motion/react";
 import {
   BarChart3,
@@ -38,13 +39,14 @@ import {
 import { supabase } from "../../config/supabase";
 import { useAuth } from "../../contexts/AuthContext";
 
-type AdminTab = "analytics" | "accounts" | "queue-controls";
+type AdminTab = "analytics" | "accounts" | "queue-controls" | "settings";
 
 // Color palette for charts
 const COLORS = ["#16a34a", "#059669", "#10b981", "#34d399", "#6ee7b7", "#a7f3d0"];
 
 export default function AdminDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<AdminTab>("analytics");
   const [reportPeriod, setReportPeriod] = useState("weekly");
   const [queueStarted, setQueueStarted] = useState(true);
@@ -59,10 +61,95 @@ export default function AdminDashboard() {
   const [waitTimeTrend, setWaitTimeTrend] = useState<any[]>([]);
   const [staffAccounts, setStaffAccounts] = useState<any[]>([]);
   const [systemLogs, setSystemLogs] = useState<any[]>([]);
+  const location = useLocation();
+
+  // Settings state
+  const [clinicSettings, setClinicSettings] = useState({
+    phone: "0950 331 3347",
+    email: "thebuj29@yahoo.com.ph",
+    address: "2/F RM Centrepoint Bldg. Magsaysay Drive cor. Rizal Ave. East Tapinac, Olongapo, Philippines, 2200",
+  });
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
+  const [settingsRowId, setSettingsRowId] = useState<string | null>(null);
+
+  // Password change state
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordSaved, setPasswordSaved] = useState(false);
+
+  // Sync active tab with URL path
+  useEffect(() => {
+    const path = location.pathname.split("/").pop();
+    if (path === "accounts") setActiveTab("accounts");
+    else if (path === "queue-controls") setActiveTab("queue-controls");
+    else if (path === "settings") setActiveTab("settings");
+    else setActiveTab("analytics"); // default for /admin/dashboard
+  }, [location.pathname]);
 
   useEffect(() => {
     fetchDashboardData();
+    fetchClinicSettings();
   }, [reportPeriod]);
+
+  const fetchClinicSettings = async () => {
+    const { data } = await supabase
+      .from("queue_settings")
+      .select("id, clinic_phone, clinic_email, clinic_address")
+      .limit(1)
+      .single();
+    if (data) {
+      setSettingsRowId(data.id);
+      setClinicSettings({
+        phone: data.clinic_phone || "",
+        email: data.clinic_email || "",
+        address: data.clinic_address || "",
+      });
+    }
+  };
+
+  const saveClinicSettings = async () => {
+    if (!settingsRowId) return;
+    setSettingsSaving(true);
+    const { error } = await supabase
+      .from("queue_settings")
+      .update({
+        clinic_phone: clinicSettings.phone,
+        clinic_email: clinicSettings.email,
+        clinic_address: clinicSettings.address,
+      })
+      .eq("id", settingsRowId);
+    setSettingsSaving(false);
+    if (!error) {
+      setSettingsSaved(true);
+      setTimeout(() => setSettingsSaved(false), 3000);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordError("");
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match.");
+      return;
+    }
+    setPasswordSaving(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setPasswordSaving(false);
+    if (error) {
+      setPasswordError(error.message);
+    } else {
+      setPasswordSaved(true);
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => setPasswordSaved(false), 3000);
+    }
+  };
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -238,51 +325,34 @@ export default function AdminDashboard() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-extrabold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-0.5">
-            System overview and operational management
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <select
-            value={reportPeriod}
-            onChange={(e) => setReportPeriod(e.target.value)}
-            className="px-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-400 shadow-sm"
-          >
-            <option value="today">Today</option>
-            <option value="weekly">This Week</option>
-            <option value="monthly">This Month</option>
-          </select>
-          <button className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold px-4 py-2.5 rounded-2xl shadow-md text-sm">
-            <Download className="w-4 h-4" />
-            Export Report
-          </button>
-        </div>
-      </div>
 
-      {/* Tab Nav */}
-      <div className="flex gap-1 bg-gray-100 rounded-2xl p-1 mb-6 overflow-x-auto">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${activeTab === tab.id
-                ? "bg-white text-green-700 shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
-              }`}
-          >
-            <tab.icon className="w-4 h-4" />
-            {tab.label}
-          </button>
-        ))}
-      </div>
+
+
 
       {/* ANALYTICS TAB */}
       {activeTab === "analytics" && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Analytics & Reports</h2>
+              <p className="text-sm text-gray-500 mt-1">Key performance metrics and service distribution overview.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <select
+                value={reportPeriod}
+                onChange={(e) => setReportPeriod(e.target.value)}
+                className="px-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-400 shadow-sm"
+              >
+                <option value="today">Today</option>
+                <option value="weekly">This Week</option>
+                <option value="monthly">This Month</option>
+              </select>
+              <button className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold px-4 py-2.5 rounded-2xl shadow-md text-sm">
+                <Download className="w-4 h-4" />
+                Export Report
+              </button>
+            </div>
+          </div>
           {/* KPI Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {kpiData.map((card, i) => (
@@ -350,6 +420,10 @@ export default function AdminDashboard() {
       {/* ACCOUNT MANAGEMENT TAB */}
       {activeTab === "accounts" && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+          <div className="mb-2">
+            <h2 className="text-xl font-bold text-gray-900">Account Management</h2>
+            <p className="text-sm text-gray-500 mt-1">Manage staff credentials and access privileges.</p>
+          </div>
           <div className="flex justify-between items-center">
             <p className="text-sm text-gray-500">{staffAccounts.length} staff accounts</p>
             <button className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold px-4 py-2.5 rounded-2xl shadow-md text-sm">
@@ -420,6 +494,10 @@ export default function AdminDashboard() {
       {/* QUEUE CONTROLS TAB */}
       {activeTab === "queue-controls" && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+          <div className="mb-2">
+            <h2 className="text-xl font-bold text-gray-900">Daily Queue Controls</h2>
+            <p className="text-sm text-gray-500 mt-1">Configure and manage the daily patient queue system operations.</p>
+          </div>
           <div className={`rounded-3xl p-6 border ${queueStarted ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
             <div className="flex items-center justify-between">
               <div>
@@ -507,6 +585,98 @@ export default function AdminDashboard() {
                   <span className="text-gray-600 text-xs leading-relaxed">{log.action}</span>
                 </div>
               ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* SETTINGS TAB */}
+      {activeTab === "settings" && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+          <div className="mb-2">
+            <h2 className="text-xl font-bold text-gray-900">Clinic Configurations</h2>
+            <p className="text-sm text-gray-500 mt-1">Manage global settings like operating hours and contact information.</p>
+          </div>
+
+
+
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
+            <h3 className="font-bold text-gray-900 mb-5">Clinic Contact Information</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Contact Number</label>
+                <input
+                  type="text"
+                  value={clinicSettings.phone}
+                  onChange={(e) => setClinicSettings(prev => ({ ...prev, phone: e.target.value }))}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Support Email Address</label>
+                <input
+                  type="email"
+                  value={clinicSettings.email}
+                  onChange={(e) => setClinicSettings(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Clinic Location Address</label>
+                <textarea
+                  rows={3}
+                  value={clinicSettings.address}
+                  onChange={(e) => setClinicSettings(prev => ({ ...prev, address: e.target.value }))}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 resize-none"
+                />
+              </div>
+            </div>
+            <div className="mt-5 pt-5 border-t border-gray-100">
+              <button
+                onClick={saveClinicSettings}
+                disabled={settingsSaving}
+                className="bg-green-500 text-white font-semibold px-6 py-2.5 rounded-2xl shadow-sm text-sm hover:bg-green-600 transition-colors disabled:opacity-60"
+              >
+                {settingsSaving ? "Saving…" : settingsSaved ? "✓ Saved!" : "Save Contact Information"}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
+            <h3 className="font-bold text-gray-900 mb-5">Admin Account Security</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                />
+              </div>
+              {passwordError && (
+                <p className="text-xs text-red-500 font-medium">{passwordError}</p>
+              )}
+            </div>
+            <div className="mt-5 pt-5 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={handleChangePassword}
+                disabled={passwordSaving}
+                className="bg-gray-900 text-white font-semibold px-6 py-2.5 rounded-2xl shadow-sm text-sm hover:bg-gray-800 transition-colors disabled:opacity-60"
+              >
+                {passwordSaving ? "Updating…" : passwordSaved ? "✓ Password Updated!" : "Change Password"}
+              </button>
             </div>
           </div>
         </motion.div>
