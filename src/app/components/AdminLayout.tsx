@@ -93,11 +93,10 @@ export default function AdminLayout() {
           navigate(item.path);
           setSidebarOpen(false);
         }}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all group ${
-          active
-            ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md"
-            : "text-gray-600 hover:bg-green-50 hover:text-green-700"
-        }`}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all group ${active
+          ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md"
+          : "text-gray-600 hover:bg-green-50 hover:text-green-700"
+          }`}
       >
         <item.icon className={`w-5 h-5 flex-shrink-0 ${active ? "text-white" : "text-gray-400 group-hover:text-green-600"}`} />
         <span className="text-sm font-semibold">{item.label}</span>
@@ -171,7 +170,6 @@ export default function AdminLayout() {
                   <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
                     Admin
                   </span>
-                  <span className="text-xs text-gray-400">Management</span>
                 </div>
               </div>
             </div>
@@ -198,7 +196,7 @@ export default function AdminLayout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Bar */}
-        <header className="bg-white border-b border-gray-100 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+        <header className="bg-white border-b border-gray-100 px-4 sm:px-6 py-4 h-[73px] flex items-center justify-between sticky top-0 z-20 shadow-sm">
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden p-2 rounded-2xl text-gray-500 hover:bg-green-50 hover:text-green-600 transition-all"
@@ -206,11 +204,7 @@ export default function AdminLayout() {
             <Menu className="w-5 h-5" />
           </button>
 
-          <div className="hidden lg:block">
-            <h2 className="font-bold text-gray-900">
-              {adminNavItems.find((n) => n.path === location.pathname)?.label || "Admin Portal"}
-            </h2>
-          </div>
+
         </header>
 
         {/* Page Content */}

@@ -74,6 +74,7 @@ export default function AdminDashboard() {
   const [settingsRowId, setSettingsRowId] = useState<string | null>(null);
 
   // Password change state
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -130,8 +131,12 @@ export default function AdminDashboard() {
 
   const handleChangePassword = async () => {
     setPasswordError("");
+    if (!currentPassword) {
+      setPasswordError("Please enter your current password.");
+      return;
+    }
     if (!newPassword || newPassword.length < 6) {
-      setPasswordError("Password must be at least 6 characters.");
+      setPasswordError("New password must be at least 6 characters.");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -139,12 +144,23 @@ export default function AdminDashboard() {
       return;
     }
     setPasswordSaving(true);
+    // Re-authenticate with current password first
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user?.email || "",
+      password: currentPassword,
+    });
+    if (signInError) {
+      setPasswordSaving(false);
+      setPasswordError("Current password is incorrect.");
+      return;
+    }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setPasswordSaving(false);
     if (error) {
       setPasswordError(error.message);
     } else {
       setPasswordSaved(true);
+      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
       setTimeout(() => setPasswordSaved(false), 3000);
@@ -334,7 +350,7 @@ export default function AdminDashboard() {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Analytics & Reports</h2>
+              <h1 className="font-bold text-gray-900">Analytics & Reports</h1>
               <p className="text-sm text-gray-500 mt-1">Key performance metrics and service distribution overview.</p>
             </div>
             <div className="flex items-center gap-3">
@@ -421,7 +437,7 @@ export default function AdminDashboard() {
       {activeTab === "accounts" && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
           <div className="mb-2">
-            <h2 className="text-xl font-bold text-gray-900">Account Management</h2>
+            <h1 className="font-bold text-gray-900">Account Management</h1>
             <p className="text-sm text-gray-500 mt-1">Manage staff credentials and access privileges.</p>
           </div>
           <div className="flex justify-between items-center">
@@ -495,7 +511,7 @@ export default function AdminDashboard() {
       {activeTab === "queue-controls" && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
           <div className="mb-2">
-            <h2 className="text-xl font-bold text-gray-900">Daily Queue Controls</h2>
+            <h1 className="font-bold text-gray-900">Daily Queue Controls</h1>
             <p className="text-sm text-gray-500 mt-1">Configure and manage the daily patient queue system operations.</p>
           </div>
           <div className={`rounded-3xl p-6 border ${queueStarted ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
@@ -594,7 +610,7 @@ export default function AdminDashboard() {
       {activeTab === "settings" && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
           <div className="mb-2">
-            <h2 className="text-xl font-bold text-gray-900">Clinic Configurations</h2>
+            <h1 className="font-bold text-gray-900">Clinic Configurations</h1>
             <p className="text-sm text-gray-500 mt-1">Manage global settings like operating hours and contact information.</p>
           </div>
 
@@ -645,6 +661,16 @@ export default function AdminDashboard() {
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
             <h3 className="font-bold text-gray-900 mb-5">Admin Account Security</h3>
             <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Current Password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                />
+              </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">New Password</label>
                 <input
