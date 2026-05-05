@@ -106,7 +106,7 @@ export default function LandingPage() {
       } else {
         setAuthError(
           errorDescription?.replace(/\+/g, " ") ||
-            "An authentication error occurred. Please try again."
+          "An authentication error occurred. Please try again."
         );
       }
       return;
@@ -312,7 +312,7 @@ export default function LandingPage() {
 
               <p className="text-gray-600 text-lg leading-relaxed mb-4">
                 {/* PLACEHOLDER: Customize intro text for the clinic */}
-                Welcome to <strong>{clinicInfo.name}</strong>'s digital queueing
+                Welcome to <strong>{clinicInfo.name}</strong>'s digital throughput
                 system. Join the queue remotely, track your position in
                 real-time, and get notified when it's your turn.
               </p>
@@ -437,10 +437,6 @@ export default function LandingPage() {
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-3 mb-4">
               Everything You Need for a Stress-Free Visit
             </h2>
-            <p className="text-gray-500 text-lg max-w-2xl mx-auto">
-              From remote queue joining to AI-driven analytics, MediFlow
-              transforms how the clinic operates.
-            </p>
           </motion.div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -493,7 +489,7 @@ export default function LandingPage() {
               {
                 step: "02",
                 title: "Join the Queue",
-                desc: "Select your service, fill a quick intake form, and receive your queue token instantly.",
+                desc: "Select your service, fill a quick intake form, and receive your line number instantly.",
                 icon: FileText,
               },
               {
@@ -505,7 +501,7 @@ export default function LandingPage() {
               {
                 step: "04",
                 title: "Get Notified",
-                desc: "Receive a push alert when your turn is coming up. Arrive just in time!",
+                desc: "Receive a push alert when your turn is coming up.",
                 icon: Bell,
               },
             ].map((item, i) => (
@@ -658,7 +654,7 @@ export default function LandingPage() {
                 onClick={() => navigate("/patient/login")}
                 className="bg-white text-green-700 font-bold px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all"
               >
-                Get Started as Patient
+                Get Started
               </motion.button>
             </div>
           </motion.div>
@@ -679,7 +675,7 @@ export default function LandingPage() {
               </div>
               <p className="text-gray-400 text-sm leading-relaxed">
                 {/* PLACEHOLDER: Update with official clinic description */}
-                A cloud-based queueing solution with A.I. analysis, built for{" "}
+                A cloud-based throughput solution with A.I. analysis, built for{" "}
                 <span className="text-green-400">{clinicInfo.name}</span>.
               </p>
             </div>
