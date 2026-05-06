@@ -145,10 +145,14 @@ export default function MedicalHistory() {
       {/* Records List */}
       <div className="space-y-4">
         {filtered.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-3xl border border-gray-100">
-            <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500 font-medium">No records found</p>
-            <p className="text-gray-400 text-sm mt-1">Try adjusting your search or filter</p>
+          <div className="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-sm">
+            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-5 border border-gray-100">
+              <FileText className="w-10 h-10 text-gray-300" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">No records found</h3>
+            <p className="text-gray-500 max-w-sm mx-auto">
+              We couldn't find any medical records matching your current filters. Try adjusting your search criteria.
+            </p>
           </div>
         ) : (
           filtered.map((visit, i) => (

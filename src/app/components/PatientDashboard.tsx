@@ -329,10 +329,14 @@ export default function PatientDashboard() {
                   </div>
                 ))
               ) : (
-                <div className="p-8 text-center">
-                  <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">No medical records yet</p>
-                  <p className="text-xs text-gray-400 mt-1">Your visit history will appear here</p>
+                <div className="p-12 text-center">
+                  <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                    <FileText className="w-8 h-8 text-gray-300" />
+                  </div>
+                  <h4 className="text-gray-900 font-bold mb-1">No medical records yet</h4>
+                  <p className="text-sm text-gray-500 max-w-xs mx-auto">
+                    Your visit history, diagnoses, and prescriptions will securely appear here after your first consultation.
+                  </p>
                 </div>
               )}
             </div>

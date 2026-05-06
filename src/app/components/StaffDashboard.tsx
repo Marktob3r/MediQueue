@@ -265,8 +265,12 @@ export default function StaffDashboard() {
                 </div>
               </div>
             ) : (
-              <div className="bg-white/10 rounded-2xl p-4 mb-4 text-center text-green-200">
-                <p>No patient currently being served</p>
+              <div className="bg-white/10 border border-white/20 rounded-2xl p-8 mb-4 text-center">
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Activity className="w-6 h-6 text-green-100" />
+                </div>
+                <p className="font-bold text-white text-lg mb-1">Ready for next patient</p>
+                <p className="text-green-200 text-sm">Call the next patient when you are ready.</p>
               </div>
             )}
 
@@ -307,7 +311,22 @@ export default function StaffDashboard() {
 
             <div className="divide-y divide-gray-50 max-h-[600px] overflow-y-auto">
               {queue.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">No patients in queue</div>
+                <div className="p-16 text-center">
+                  <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-5 border border-gray-100">
+                    <Users className="w-10 h-10 text-gray-300" />
+                  </div>
+                  <h4 className="text-gray-900 font-bold text-lg mb-2">Queue is empty</h4>
+                  <p className="text-sm text-gray-500 max-w-sm mx-auto mb-6">
+                    There are currently no patients waiting in the live queue.
+                  </p>
+                  <button
+                    onClick={() => navigate("/staff/walkin")}
+                    className="inline-flex items-center gap-2 bg-white border-2 border-gray-200 text-gray-700 font-bold py-2.5 px-6 rounded-2xl hover:bg-gray-50 transition-colors"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Register Walk-in Patient
+                  </button>
+                </div>
               ) : (
                 queue.map((patient, i) => (
                   <motion.div

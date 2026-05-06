@@ -39,7 +39,7 @@ export default function StaffLogin() {
 
       await signIn(form.email, form.password);
       // Navigation and role checking is now handled by the useEffect above
-      
+
     } catch (err: any) {
       setError(err.message || "Authentication failed. Please check your credentials.");
       console.error("Staff login error:", err);
@@ -99,9 +99,6 @@ export default function StaffLogin() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm font-semibold text-gray-300">Password</label>
-                <button type="button" className="text-xs text-green-400 hover:text-green-300 font-medium">
-                  Forgot password?
-                </button>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -127,11 +124,10 @@ export default function StaffLogin() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className={`flex items-start gap-2 px-4 py-3 rounded-2xl text-sm ${
-                  error.includes("patient") 
+                className={`flex items-start gap-2 px-4 py-3 rounded-2xl text-sm ${error.includes("patient")
                     ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-400"
                     : "bg-red-500/10 border border-red-500/20 text-red-400"
-                }`}
+                  }`}
               >
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <span>{error}</span>

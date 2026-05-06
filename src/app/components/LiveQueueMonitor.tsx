@@ -259,7 +259,15 @@ export default function LiveQueueMonitor() {
             </div>
             <div className="divide-y divide-gray-50 max-h-[480px] overflow-y-auto">
               {queueList.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">No patients in queue</div>
+                <div className="p-16 text-center">
+                  <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-5 border border-green-100">
+                    <Users className="w-10 h-10 text-green-300" />
+                  </div>
+                  <h4 className="text-gray-900 font-bold text-lg mb-2">Queue is empty</h4>
+                  <p className="text-sm text-gray-500 max-w-sm mx-auto">
+                    The clinic is currently clear with no patients waiting in line. Enjoy the short wait time!
+                  </p>
+                </div>
               ) : (
                 queueList.map((item, i) => (
                   <motion.div

@@ -276,25 +276,13 @@ export default function AdminDashboard() {
   };
 
   const fetchHourlyDistribution = async () => {
-    const hours = ["8AM", "9AM", "10AM", "11AM", "12PM", "1PM", "2PM", "3PM", "4PM"];
-    const distribution = hours.map(hour => ({
-      hour,
-      count: Math.floor(Math.random() * 20) + 5, // Placeholder - replace with actual data
-    }));
-    setHourlyDistribution(distribution);
+    // Set to empty array to show beautiful empty state until connected to backend
+    setHourlyDistribution([]);
   };
 
   const fetchWaitTimeTrend = async () => {
-    const trends = [];
-    for (let i = 14; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      trends.push({
-        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        avgWait: Math.floor(Math.random() * 30) + 10,
-      });
-    }
-    setWaitTimeTrend(trends);
+    // Set to empty array to show beautiful empty state until connected to backend
+    setWaitTimeTrend([]);
   };
 
   const fetchStaffAccounts = async () => {
@@ -317,12 +305,8 @@ export default function AdminDashboard() {
   };
 
   const fetchSystemLogs = async () => {
-    // Placeholder logs - replace with actual system logs table
-    setSystemLogs([
-      { time: "10:32 AM", action: "Walk-in patient registered", type: "info" },
-      { time: "9:58 AM", action: "Queue notification sent", type: "success" },
-      { time: "8:05 AM", action: "Daily queue started", type: "info" },
-    ]);
+    // Placeholder logs - replace with actual system logs table later
+    setSystemLogs([]);
   };
 
   const tabs = [
@@ -427,7 +411,15 @@ export default function AdminDashboard() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="text-center py-8 text-gray-500">No data available</div>
+              <div className="py-12 text-center">
+                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                  <BarChart3 className="w-8 h-8 text-gray-300" />
+                </div>
+                <h4 className="text-gray-900 font-bold mb-1">No services recorded</h4>
+                <p className="text-sm text-gray-500 max-w-xs mx-auto">
+                  Service distribution charts will appear here once patients complete their visits.
+                </p>
+              </div>
             )}
           </div>
         </motion.div>
@@ -461,45 +453,59 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {staffAccounts.map((staff, i) => (
-                    <tr key={staff.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm ${staff.role === "Admin" ? "bg-purple-500" : "bg-green-500"
-                            }`}>
-                            {staff.name.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold text-gray-900">{staff.name}</p>
-                            <p className="text-xs text-gray-400">{staff.email}</p>
-                          </div>
+                  {staffAccounts.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center">
+                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                          <Shield className="w-8 h-8 text-gray-300" />
                         </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${staff.role === "Admin" ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700"
-                          }`}>
-                          {staff.role}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className={`flex items-center gap-1.5 text-xs font-semibold ${staff.status === "active" ? "text-green-600" : "text-gray-400"}`}>
-                          <span className={`w-2 h-2 rounded-full ${staff.status === "active" ? "bg-green-500" : "bg-gray-300"}`} />
-                          {staff.status === "active" ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 text-xs text-gray-400">{staff.lastLogin}</td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <button className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600">
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button className="p-1.5 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-500">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                        <h4 className="text-gray-900 font-bold mb-1">No staff accounts found</h4>
+                        <p className="text-sm text-gray-500 max-w-xs mx-auto">
+                          Get started by adding staff accounts to manage the clinic operations.
+                        </p>
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    staffAccounts.map((staff, i) => (
+                      <tr key={staff.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm ${staff.role === "Admin" ? "bg-purple-500" : "bg-green-500"
+                              }`}>
+                              {staff.name.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-gray-900">{staff.name}</p>
+                              <p className="text-xs text-gray-400">{staff.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${staff.role === "Admin" ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700"
+                            }`}>
+                            {staff.role}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`flex items-center gap-1.5 text-xs font-semibold ${staff.status === "active" ? "text-green-600" : "text-gray-400"}`}>
+                            <span className={`w-2 h-2 rounded-full ${staff.status === "active" ? "bg-green-500" : "bg-gray-300"}`} />
+                            {staff.status === "active" ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-xs text-gray-400">{staff.lastLogin}</td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center justify-end gap-2">
+                            <button className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button className="p-1.5 rounded-xl hover:bg-red-50 text-gray-400 hover:text-red-500">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -585,22 +591,26 @@ export default function AdminDashboard() {
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
             <h3 className="font-bold text-gray-900 mb-4">System Activity Log</h3>
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {[
-                { time: "10:32 AM", action: "Priority override applied to A-049 by Staff Ana Reyes", type: "warning" },
-                { time: "10:15 AM", action: "Walk-in patient registered: A-063 (Maria Flores)", type: "info" },
-                { time: "9:58 AM", action: "Queue notification sent to A-050 (2 patients ahead)", type: "success" },
-                { time: "9:45 AM", action: "Patient A-047 marked as completed by Staff Ana Reyes", type: "success" },
-                { time: "9:30 AM", action: "A-046 marked as no-show after 15-minute timeout", type: "warning" },
-                { time: "8:05 AM", action: "Daily queue started by Admin Carla Cruz", type: "info" },
-                { time: "8:00 AM", action: "System initialized · MediFlow v1.0.0 started", type: "info" },
-              ].map((log, i) => (
-                <div key={i} className="flex items-start gap-3 text-sm py-2 border-b border-gray-50 last:border-0">
-                  <span className="text-xs text-gray-400 font-mono w-16 flex-shrink-0">{log.time}</span>
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${log.type === "success" ? "bg-green-500" : log.type === "warning" ? "bg-amber-500" : "bg-blue-400"
-                    }`} />
-                  <span className="text-gray-600 text-xs leading-relaxed">{log.action}</span>
+              {systemLogs.length === 0 ? (
+                <div className="py-8 text-center">
+                  <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-gray-100">
+                    <Activity className="w-5 h-5 text-gray-300" />
+                  </div>
+                  <h4 className="text-gray-900 font-bold text-sm mb-1">No system activity</h4>
+                  <p className="text-xs text-gray-500">
+                    System logs and events will appear here once the system is active.
+                  </p>
                 </div>
-              ))}
+              ) : (
+                systemLogs.map((log, i) => (
+                  <div key={i} className="flex items-start gap-3 text-sm py-2 border-b border-gray-50 last:border-0">
+                    <span className="text-xs text-gray-400 font-mono w-16 flex-shrink-0">{log.time}</span>
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${log.type === "success" ? "bg-green-500" : log.type === "warning" ? "bg-amber-500" : "bg-blue-400"
+                      }`} />
+                    <span className="text-gray-600 text-xs leading-relaxed">{log.action}</span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </motion.div>
