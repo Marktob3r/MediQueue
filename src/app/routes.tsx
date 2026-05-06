@@ -10,6 +10,7 @@ import LandingPage from "./components/LandingPage";
 import PatientLogin from "./components/PatientLogin";
 import VerifyOTP from "./components/VerifyOTP";
 import PatientDashboard from "./components/PatientDashboard";
+import PatientForgotPassword from "./components/PatientForgotPassword";
 import JoinQueue from "./components/JoinQueue";
 import LiveQueueMonitor from "./components/LiveQueueMonitor";
 import MedicalHistory from "./components/MedicalHistory";
@@ -35,6 +36,10 @@ export const router = createBrowserRouter([
   {
     path: "/patient/verify",
     element: <VerifyOTP />,
+  },
+  {
+    path: "/patient/forgot-password",
+    element: <PatientForgotPassword />,
   },
   {
     path: "/staff/login",

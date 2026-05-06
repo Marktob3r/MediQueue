@@ -184,7 +184,11 @@ export default function PatientLogin() {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <label className="block text-sm font-semibold text-gray-700">Password</label>
-                      <button type="button" className="text-xs text-green-600 hover:text-green-700 font-medium">
+                      <button 
+                        type="button" 
+                        onClick={() => navigate("/patient/forgot-password")}
+                        className="text-xs text-green-600 hover:text-green-700 font-medium"
+                      >
                         Forgot password?
                       </button>
                     </div>

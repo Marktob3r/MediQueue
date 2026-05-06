@@ -23,6 +23,9 @@ export interface AuthContextType {
   resendOtp: (email: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  sendPasswordResetOtp: (email: string) => Promise<void>;
+  verifyPasswordResetOtp: (email: string, token: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -196,6 +199,48 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const sendPasswordResetOtp = async (email: string) => {
+    try {
+      console.log("Sending password reset OTP...");
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) throw error;
+      console.log("Password reset OTP sent successfully.");
+    } catch (error) {
+      console.error("Reset password error:", error);
+      throw error;
+    }
+  };
+
+  const verifyPasswordResetOtp = async (email: string, token: string) => {
+    try {
+      console.log("Verifying password reset OTP...");
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'recovery'
+      });
+      if (error) throw error;
+      console.log("Password reset OTP verified successfully.");
+    } catch (error) {
+      console.error("Verify reset OTP error:", error);
+      throw error;
+    }
+  };
+
+  const updatePassword = async (password: string) => {
+    try {
+      console.log("Updating password...");
+      const { error } = await supabase.auth.updateUser({
+        password: password
+      });
+      if (error) throw error;
+      console.log("Password updated successfully.");
+    } catch (error) {
+      console.error("Update password error:", error);
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     loading,
@@ -206,6 +251,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     resendOtp,
     signIn,
     signOut,
+    sendPasswordResetOtp,
+    verifyPasswordResetOtp,
+    updatePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
