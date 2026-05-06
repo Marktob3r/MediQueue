@@ -7,7 +7,7 @@ import { useAuth } from "../../contexts/AuthContext";
 export default function VerifyOTP() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { verifyOtp, resendOtp } = useAuth();
+  const { verifyOtp, resendOtp, isAuthenticated, userRole } = useAuth();
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -21,6 +21,13 @@ export default function VerifyOTP() {
       return () => clearTimeout(timer);
     }
   }, [cooldown]);
+
+  // Redirect if successfully verified and authenticated
+  useEffect(() => {
+    if (isAuthenticated && userRole === "patient") {
+      navigate("/patient/dashboard");
+    }
+  }, [isAuthenticated, userRole, navigate]);
 
   // Email is passed via React Router state from the signup page
   const email = location.state?.email || "";
@@ -43,12 +50,10 @@ export default function VerifyOTP() {
 
       await verifyOtp(email, token);
 
-      // On success, AuthContext handles the session and we just navigate to dashboard
-      navigate("/patient/dashboard");
+      // On success, AuthContext handles the session and navigation is handled by the useEffect above
     } catch (err: any) {
       setError(err.message || "Invalid verification code. Please try again.");
       console.error("Verification error:", err);
-    } finally {
       setLoading(false);
     }
   };

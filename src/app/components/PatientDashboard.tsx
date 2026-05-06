@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Clock,
   Bell,
@@ -14,6 +14,11 @@ import {
   TrendingUp,
   Stethoscope,
   LogOut,
+  MapPin,
+  User,
+  Heart,
+  Users,
+  Phone,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../config/supabase";
@@ -30,6 +35,20 @@ export default function PatientDashboard() {
     prescriptions: 0,
     upcomingAppointments: 0,
   });
+
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingForm, setOnboardingForm] = useState({
+    date_of_birth: "",
+    gender: "",
+    blood_type: "",
+    address: "",
+    phone: "",
+    emergency_contact: "",
+    emergency_phone: "",
+  });
+  const [savingOnboarding, setSavingOnboarding] = useState(false);
+  const [onboardingError, setOnboardingError] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -52,6 +71,41 @@ export default function PatientDashboard() {
         .single();
 
       setActiveQueue(queueData);
+
+      // Check onboarding status
+      const { data: profileData } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("user_id", user?.id)
+        .single();
+
+      const { data: patientData } = await supabase
+        .from("patients")
+        .select("*")
+        .eq("user_id", user?.id)
+        .single();
+
+      const isProfileComplete =
+        profileData?.date_of_birth &&
+        profileData?.gender &&
+        profileData?.address &&
+        profileData?.phone &&
+        patientData?.blood_type &&
+        patientData?.emergency_contact &&
+        patientData?.emergency_phone;
+
+      if (!isProfileComplete) {
+        setShowOnboarding(true);
+        setOnboardingForm({
+          date_of_birth: profileData?.date_of_birth || "",
+          gender: profileData?.gender || "",
+          blood_type: patientData?.blood_type || "",
+          address: profileData?.address || "",
+          phone: profileData?.phone || "",
+          emergency_contact: patientData?.emergency_contact || "",
+          emergency_phone: patientData?.emergency_phone || "",
+        });
+      }
 
       // Fetch recent medical records (last 3)
       const { data: visitsData } = await supabase
@@ -94,8 +148,60 @@ export default function PatientDashboard() {
   };
 
   const handleSignOut = async () => {
+    setOnboardingForm({
+      date_of_birth: "",
+      gender: "",
+      blood_type: "",
+      address: "",
+      phone: "",
+      emergency_contact: "",
+      emergency_phone: "",
+    });
     await signOut();
     navigate("/");
+  };
+
+  const handleSaveOnboarding = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingOnboarding(true);
+    setOnboardingError(null);
+    try {
+      if (!onboardingForm.date_of_birth || !onboardingForm.gender || !onboardingForm.blood_type || !onboardingForm.address || !onboardingForm.phone || !onboardingForm.emergency_contact || !onboardingForm.emergency_phone) {
+        throw new Error("Please fill in all required fields to continue.");
+      }
+
+      const { error: profileError } = await supabase
+        .from("user_profiles")
+        .update({
+          date_of_birth: onboardingForm.date_of_birth,
+          gender: onboardingForm.gender,
+          address: onboardingForm.address,
+          phone: onboardingForm.phone,
+        })
+        .eq("user_id", user?.id);
+
+      if (profileError) throw profileError;
+
+      const { error: patientError } = await supabase
+        .from("patients")
+        .update({
+          blood_type: onboardingForm.blood_type,
+          emergency_contact: onboardingForm.emergency_contact,
+          emergency_phone: onboardingForm.emergency_phone,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", user?.id);
+
+      if (patientError) throw patientError;
+
+      setShowOnboarding(false);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (err: any) {
+      setOnboardingError(err.message);
+    } finally {
+      setSavingOnboarding(false);
+    }
   };
 
   const quickActions = [
@@ -155,7 +261,190 @@ export default function PatientDashboard() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto relative">
+
+      {/* Onboarding Modal Overlay */}
+      {showOnboarding && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm overflow-y-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden my-4 sm:my-8"
+          >
+            <div className="bg-gradient-to-r from-green-600 to-emerald-700 p-5 sm:p-6 text-white">
+              <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center mb-3">
+                <User className="w-5 h-5 text-white" />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-extrabold mb-1">Complete Your Profile</h2>
+              <p className="text-green-100 text-sm">
+                Welcome to MediFlow! We need a few more details to complete your patient record before you can join the queue.
+              </p>
+            </div>
+
+            <div className="p-5 sm:p-6">
+              {onboardingError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-700">{onboardingError}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleSaveOnboarding} className="space-y-4">
+
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">Date of Birth *</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="date"
+                        required
+                        value={onboardingForm.date_of_birth}
+                        onChange={(e) => setOnboardingForm({ ...onboardingForm, date_of_birth: e.target.value })}
+                        className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">Sex *</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <select
+                        required
+                        value={onboardingForm.gender}
+                        onChange={(e) => setOnboardingForm({ ...onboardingForm, gender: e.target.value })}
+                        className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 appearance-none"
+                      >
+                        <option value="">Select Sex</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">Phone Number *</label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        required
+                        maxLength={11}
+                        pattern="\d{11}"
+                        title="Must be exactly 11 digits"
+                        value={onboardingForm.phone}
+                        onChange={(e) => setOnboardingForm({ ...onboardingForm, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+                        placeholder="09XXXXXXXXX"
+                        className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">Blood Type *</label>
+                    <div className="relative">
+                      <Heart className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <select
+                        required
+                        value={onboardingForm.blood_type}
+                        onChange={(e) => setOnboardingForm({ ...onboardingForm, blood_type: e.target.value })}
+                        className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 appearance-none"
+                      >
+                        <option value="">Select Blood Type</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">Home Address *</label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        required
+                        value={onboardingForm.address}
+                        onChange={(e) => setOnboardingForm({ ...onboardingForm, address: e.target.value })}
+                        placeholder="Full Address"
+                        className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-gray-100">
+                  <h3 className="font-bold text-gray-900 mb-3">Emergency Contact</h3>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Contact Name *</label>
+                      <div className="relative">
+                        <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type="text"
+                          required
+                          value={onboardingForm.emergency_contact}
+                          onChange={(e) => setOnboardingForm({ ...onboardingForm, emergency_contact: e.target.value })}
+                          placeholder="Full Name"
+                          className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Contact Phone *</label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type="text"
+                          required
+                          maxLength={11}
+                          pattern="\d{11}"
+                          title="Must be exactly 11 digits"
+                          value={onboardingForm.emergency_phone}
+                          onChange={(e) => setOnboardingForm({ ...onboardingForm, emergency_phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+                          placeholder="09XXXXXXXXX"
+                          className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4 mt-4 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="flex-1 bg-white border border-gray-200 text-gray-700 font-bold py-3 rounded-2xl hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-sm"
+                  >
+                    <LogOut className="w-4 h-4" /> Cancel & Logout
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingOnboarding}
+                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 rounded-2xl shadow hover:shadow-lg transition-all disabled:opacity-70 flex items-center justify-center gap-2 text-sm"
+                  >
+                    {savingOnboarding ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Complete Setup"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -363,6 +652,26 @@ export default function PatientDashboard() {
           </div>
         </motion.div>
       </div>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-6 right-6 bg-white border border-green-100 rounded-2xl shadow-2xl p-4 flex items-center gap-3 z-50"
+          >
+            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-gray-900">Profile Completed!</h4>
+              <p className="text-xs text-gray-500">Your information has been saved successfully.</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

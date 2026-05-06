@@ -671,23 +671,6 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
-
-            {/* Quick Links */}
-            <div>
-              <h4 className="text-white font-bold mb-4">Quick Links</h4>
-              <div className="space-y-2">
-                {["Patient Portal", "Staff Login", "Admin Dashboard", "Privacy Policy", "Terms of Use"].map(
-                  (link) => (
-                    <button
-                      key={link}
-                      className="block text-gray-400 hover:text-green-400 text-sm transition-colors"
-                    >
-                      {link}
-                    </button>
-                  )
-                )}
-              </div>
-            </div>
           </div>
 
           <div className="border-t border-gray-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">

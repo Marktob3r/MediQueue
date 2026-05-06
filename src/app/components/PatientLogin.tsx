@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import { Activity, Eye, EyeOff, Mail, Lock, User, ArrowLeft, CheckCircle, AlertCircle, Phone } from "lucide-react";
@@ -10,12 +10,24 @@ const CLINIC_NAME = "Samuel P. Dizon Medical Clinic";
 
 export default function PatientLogin() {
   const navigate = useNavigate();
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, isAuthenticated, userRole } = useAuth();
   const [tab, setTab] = useState<Tab>("login");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Redirect if already logged in as a patient
+  useEffect(() => {
+    if (isAuthenticated && userRole) {
+      if (userRole === "patient") {
+        navigate("/patient/dashboard");
+      } else {
+        setError("This account is registered as staff/admin. Please use the Staff Portal.");
+        setLoading(false);
+      }
+    }
+  }, [isAuthenticated, userRole, navigate]);
 
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [regForm, setRegForm] = useState({
@@ -39,11 +51,10 @@ export default function PatientLogin() {
       }
 
       await signIn(loginForm.email, loginForm.password);
-      navigate("/patient/dashboard");
+      // Navigation is now handled by the useEffect above
     } catch (err: any) {
       setError(err.message || "Sign in failed. Please check your credentials.");
       console.error("Login error:", err);
-    } finally {
       setLoading(false);
     }
   };
@@ -78,16 +89,16 @@ export default function PatientLogin() {
 
       // Route based on whether Supabase has email confirmation enabled
       if (needsEmailConfirmation) {
+        setLoading(false);
         navigate("/patient/verify", { state: { email: regForm.email } });
       } else {
         // Email confirmation is disabled in Supabase — go straight to dashboard
-        navigate("/patient/dashboard");
+        // Wait for useEffect to navigate
       }
 
     } catch (err: any) {
       setError(err.message || "Registration failed. Please try again.");
       console.error("Registration error:", err);
-    } finally {
       setLoading(false);
     }
   };

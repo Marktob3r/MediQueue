@@ -17,10 +17,9 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../config/supabase";
-import bcrypt from "bcryptjs";
 
 export default function PatientSettings() {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const [profile, setProfile] = useState({
     first_name: "",
     last_name: "",
@@ -44,15 +43,14 @@ export default function PatientSettings() {
     appointment_reminders: true,
   });
   const [activeTab, setActiveTab] = useState<"profile" | "notifications" | "security">("profile");
-  const [showCurrentPass, setShowCurrentPass] = useState(false);
   const [showNewPass, setShowNewPass] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -63,25 +61,33 @@ export default function PatientSettings() {
 
   const fetchProfile = async () => {
     try {
-      const { data, error } = await supabase
-        .from("patients")
+      const { data: profileData, error: profileError } = await supabase
+        .from("user_profiles")
         .select("*")
-        .eq("id", user?.id)
+        .eq("user_id", user?.id)
         .single();
 
-      if (error) throw error;
+      if (profileError && profileError.code !== 'PGRST116') throw profileError;
+
+      const { data: patientData, error: patientError } = await supabase
+        .from("patients")
+        .select("*")
+        .eq("user_id", user?.id)
+        .single();
+
+      if (patientError && patientError.code !== 'PGRST116') throw patientError;
 
       setProfile({
-        first_name: data.first_name || "",
-        last_name: data.last_name || "",
-        email: data.email || "",
-        phone: data.phone || "",
-        address: data.address || "",
-        date_of_birth: data.date_of_birth || "",
-        gender: data.gender || "",
-        blood_type: data.blood_type || "",
-        emergency_contact: data.emergency_contact || "",
-        emergency_phone: data.emergency_phone || "",
+        first_name: profileData?.first_name || "",
+        last_name: profileData?.last_name || "",
+        email: profileData?.email || user?.email || "",
+        phone: profileData?.phone || "",
+        address: profileData?.address || "",
+        date_of_birth: profileData?.date_of_birth || "",
+        gender: profileData?.gender || "",
+        blood_type: patientData?.blood_type || "",
+        emergency_contact: patientData?.emergency_contact || "",
+        emergency_phone: patientData?.emergency_phone || "",
       });
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -119,8 +125,8 @@ export default function PatientSettings() {
     setSaving(true);
     setError(null);
     try {
-      const { error } = await supabase
-        .from("patients")
+      const { error: profileError } = await supabase
+        .from("user_profiles")
         .update({
           first_name: profile.first_name,
           last_name: profile.last_name,
@@ -128,17 +134,27 @@ export default function PatientSettings() {
           address: profile.address,
           date_of_birth: profile.date_of_birth || null,
           gender: profile.gender,
+          email: user?.email,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", user?.id);
+
+      if (profileError) throw profileError;
+
+      const { error: patientError } = await supabase
+        .from("patients")
+        .update({
           blood_type: profile.blood_type,
           emergency_contact: profile.emergency_contact,
           emergency_phone: profile.emergency_phone,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", user?.id);
+        .eq("user_id", user?.id);
 
-      if (error) throw error;
+      if (patientError) throw patientError;
 
-      await refreshUser();
       setSavedSuccess(true);
+      setIsEditing(false);
       setTimeout(() => setSavedSuccess(false), 3000);
     } catch (err: any) {
       setError(err.message);
@@ -191,27 +207,9 @@ export default function PatientSettings() {
     setSaving(true);
     setError(null);
     try {
-      // Verify current password
-      const { data, error: fetchError } = await supabase
-        .from("patients")
-        .select("password_hash")
-        .eq("id", user?.id)
-        .single();
-
-      if (fetchError) throw new Error("User not found");
-
-      const isValid = await bcrypt.compare(currentPassword, data.password_hash);
-      if (!isValid) throw new Error("Current password is incorrect");
-
-      // Hash new password
-      const salt = await bcrypt.genSalt(10);
-      const newHash = await bcrypt.hash(newPassword, salt);
-
-      // Update password
-      const { error: updateError } = await supabase
-        .from("patients")
-        .update({ password_hash: newHash })
-        .eq("id", user?.id);
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword
+      });
 
       if (updateError) throw updateError;
 
@@ -229,7 +227,7 @@ export default function PatientSettings() {
 
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
-    { id: "notifications", label: "Notifications", icon: Bell },
+    // { id: "notifications", label: "Preferences", icon: Settings },
     { id: "security", label: "Security", icon: Shield },
   ] as const;
 
@@ -304,7 +302,8 @@ export default function PatientSettings() {
                   <input
                     value={profile.first_name}
                     onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
-                    className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                    disabled={!isEditing}
+                    className={`w-full pl-9 pr-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 ${!isEditing ? "bg-gray-100 text-gray-500 cursor-not-allowed" : "bg-gray-50"}`}
                   />
                 </div>
               </div>
@@ -313,7 +312,8 @@ export default function PatientSettings() {
                 <input
                   value={profile.last_name}
                   onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                  disabled={!isEditing}
+                  className={`w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 ${!isEditing ? "bg-gray-100 text-gray-500 cursor-not-allowed" : "bg-gray-50"}`}
                 />
               </div>
               <div>
@@ -330,6 +330,23 @@ export default function PatientSettings() {
                 <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
               </div>
               <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Phone Number</label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    maxLength={11}
+                    pattern="\d{11}"
+                    title="Must be exactly 11 digits"
+                    value={profile.phone || ""}
+                    onChange={(e) => setProfile({ ...profile, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+                    placeholder="09XXXXXXXXX"
+                    disabled={!isEditing}
+                    className={`w-full pl-9 pr-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 ${!isEditing ? "bg-gray-100 text-gray-500 cursor-not-allowed" : "bg-gray-50"}`}
+                  />
+                </div>
+              </div>
+              <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Date of Birth</label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -337,16 +354,18 @@ export default function PatientSettings() {
                     type="date"
                     value={profile.date_of_birth || ""}
                     onChange={(e) => setProfile({ ...profile, date_of_birth: e.target.value })}
-                    className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                    disabled={!isEditing}
+                    className={`w-full pl-9 pr-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 ${!isEditing ? "bg-gray-100 text-gray-500 cursor-not-allowed" : "bg-gray-50"}`}
                   />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Sex</label>
                 <select
-                  value={profile.sex || ""}
-                  onChange={(e) => setProfile({ ...profile, sex: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                  value={profile.gender || ""}
+                  onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
+                  disabled={!isEditing}
+                  className={`w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 appearance-none ${!isEditing ? "bg-gray-100 text-gray-500 cursor-not-allowed" : "bg-gray-50"}`}
                 >
                   <option value="">Select Sex</option>
                   <option value="Male">Male</option>
@@ -360,7 +379,8 @@ export default function PatientSettings() {
                   <select
                     value={profile.blood_type || ""}
                     onChange={(e) => setProfile({ ...profile, blood_type: e.target.value })}
-                    className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                    disabled={!isEditing}
+                    className={`w-full pl-9 pr-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 appearance-none ${!isEditing ? "bg-gray-100 text-gray-500 cursor-not-allowed" : "bg-gray-50"}`}
                   >
                     <option value="">Select Blood Type</option>
                     <option value="A+">A+</option>
@@ -382,7 +402,8 @@ export default function PatientSettings() {
                     value={profile.address || ""}
                     onChange={(e) => setProfile({ ...profile, address: e.target.value })}
                     placeholder="Enter your full address"
-                    className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                    disabled={!isEditing}
+                    className={`w-full pl-9 pr-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 ${!isEditing ? "bg-gray-100 text-gray-500 cursor-not-allowed" : "bg-gray-50"}`}
                   />
                 </div>
               </div>
@@ -400,7 +421,8 @@ export default function PatientSettings() {
                     value={profile.emergency_contact || ""}
                     onChange={(e) => setProfile({ ...profile, emergency_contact: e.target.value })}
                     placeholder="Emergency contact name"
-                    className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                    disabled={!isEditing}
+                    className={`w-full pl-9 pr-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 ${!isEditing ? "bg-gray-100 text-gray-500 cursor-not-allowed" : "bg-gray-50"}`}
                   />
                 </div>
               </div>
@@ -409,100 +431,51 @@ export default function PatientSettings() {
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
+                    type="text"
+                    maxLength={11}
+                    pattern="\d{11}"
+                    title="Must be exactly 11 digits"
                     value={profile.emergency_phone || ""}
-                    onChange={(e) => setProfile({ ...profile, emergency_phone: e.target.value })}
-                    placeholder="Emergency contact number"
-                    className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                    onChange={(e) => setProfile({ ...profile, emergency_phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+                    placeholder="09XXXXXXXXX"
+                    disabled={!isEditing}
+                    className={`w-full pl-9 pr-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 ${!isEditing ? "bg-gray-100 text-gray-500 cursor-not-allowed" : "bg-gray-50"}`}
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={handleSaveProfile}
-            disabled={saving}
-            className="flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm shadow-md transition-all bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg disabled:opacity-70"
-          >
-            {saving ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4" /> Save Profile Changes
-              </>
-            )}
-          </motion.button>
+          {isEditing ? (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleSaveProfile}
+              disabled={saving}
+              className="flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm shadow-md transition-all bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg disabled:opacity-70"
+            >
+              {saving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" /> Save Profile Changes
+                </>
+              )}
+            </motion.button>
+          ) : (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm shadow-md transition-all bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+            >
+              <User className="w-4 h-4" /> Edit Personal Information
+            </motion.button>
+          )}
         </motion.div>
       )}
 
-      {/* NOTIFICATIONS TAB */}
-      {activeTab === "notifications" && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-            <h3 className="font-bold text-gray-900 mb-5">Notification Channels</h3>
-            {[
-              { key: "push_enabled", label: "Browser Push Notifications", desc: "Get queue alerts directly in your browser" },
-              { key: "email_enabled", label: "Email Notifications", desc: `Send alerts to ${profile.email}` },
-              { key: "sms_enabled", label: "SMS Notifications", desc: "Send SMS to your phone" },
-            ].map(({ key, label, desc }) => (
-              <div key={key} className="flex items-center justify-between py-4 border-b border-gray-50 last:border-0">
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">{label}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
-                </div>
-                <Toggle
-                  checked={notifPrefs[key as keyof typeof notifPrefs]}
-                  onChange={(v) => setNotifPrefs({ ...notifPrefs, [key]: v })}
-                />
-              </div>
-            ))}
-          </div>
-
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-            <h3 className="font-bold text-gray-900 mb-5">Queue Alert Triggers</h3>
-            {[
-              { key: "notify_at_5", label: "Alert when 5 patients ahead", desc: "Get advance notice to head to the clinic" },
-              { key: "notify_at_2", label: "Alert when 2 patients ahead", desc: "Final reminder — your turn is very soon!" },
-              { key: "queue_updates", label: "Queue status updates", desc: "Receive notifications on queue changes" },
-              { key: "prescription_reminders", label: "Prescription Reminders", desc: "Get reminded about your medications" },
-              { key: "appointment_reminders", label: "Appointment Reminders", desc: "Get notified about upcoming appointments" },
-            ].map(({ key, label, desc }) => (
-              <div key={key} className="flex items-center justify-between py-4 border-b border-gray-50 last:border-0">
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">{label}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
-                </div>
-                <Toggle
-                  checked={notifPrefs[key as keyof typeof notifPrefs]}
-                  onChange={(v) => setNotifPrefs({ ...notifPrefs, [key]: v })}
-                />
-              </div>
-            ))}
-          </div>
-
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={handleSaveNotifications}
-            disabled={saving}
-            className="flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm shadow-md transition-all bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg disabled:opacity-70"
-          >
-            {saving ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4" /> Save Notification Settings
-              </>
-            )}
-          </motion.button>
-        </motion.div>
-      )}
 
       {/* SECURITY TAB */}
       {activeTab === "security" && (
@@ -515,22 +488,6 @@ export default function PatientSettings() {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Current Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type={showCurrentPass ? "text" : "password"}
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Enter current password"
-                    className="w-full pl-9 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-                  />
-                  <button onClick={() => setShowCurrentPass(!showCurrentPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                    {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">New Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
@@ -560,7 +517,7 @@ export default function PatientSettings() {
               </div>
               <button
                 onClick={handleChangePassword}
-                disabled={saving || !currentPassword || !newPassword}
+                disabled={saving || !newPassword}
                 className="bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold px-6 py-3 rounded-2xl shadow-md hover:shadow-lg transition-all text-sm disabled:opacity-50"
               >
                 {saving ? "Updating..." : "Update Password"}
